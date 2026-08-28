@@ -1,0 +1,156 @@
+name: Restore root frontend and build government fare hierarchy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    # Avoid looping on our own generated commit.
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'Build government fare hierarchy and restore root frontend'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore known-good root frontend and JS
+        run: |
+          git checkout 1de5ffb6faf477d9d22b2ff2f0caf23f6a062a34 -- index.html script.js
+
+      - name: Apply targeted frontend hierarchy changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Remove fuel/energy from the hero card and quick stats only; preserve design.
+          s = re.sub(r'\s*<span id="heroEnergy">\s*Petrol\s*</span>', '', s)
+          s = re.sub(r'\s*<i class="fa-solid fa-gas-pump"></i>\s*', '', s, count=1)
+          s = re.sub(r'\s*<div class="stat-box">\s*<div class="stat-box-icon">\s*<i class="fa-solid fa-bolt"></i>.*?</div>\s*</div>\s*</div>\s*</div>', '', s, count=1, flags=re.S)
+
+          # Replace the original category select with a three-level government hierarchy.
+          old = re.search(r'(<div class="form-group">\s*<label for="category">.*?<select\s+id="category".*?</select>\s*<i class="fa-solid fa-chevron-down select-arrow"></i>\s*</div>\s*</div>)', s, flags=re.S)
+          if not old:
+              raise SystemExit('Could not locate category select')
+          new = '''<div class="form-group">\n\n                            <label for="governmentClass">Government vehicle class</label>\n\n                            <div class="select-wrapper">\n                                <i class="fa-solid fa-layer-group select-icon"></i>\n                                <select id="governmentClass" required>\n                                    <option value="">Loading classifications...</option>\n                                </select>\n                                <i class="fa-solid fa-chevron-down select-arrow"></i>\n                            </div>\n\n                        </div>\n\n                        <div class="form-group" id="governmentSubclassGroup" style="display:none">\n                            <label for="governmentSubclass">Government subclass</label>\n                            <div class="select-wrapper">\n                                <i class="fa-solid fa-list select-icon"></i>\n                                <select id="governmentSubclass"><option value="">Select subclass</option></select>\n                                <i class="fa-solid fa-chevron-down select-arrow"></i>\n                            </div>\n                        </div>\n\n                        <div class="form-group" id="governmentConfigurationGroup" style="display:none">\n                            <label for="governmentConfiguration">Vehicle configuration</label>\n                            <div class="select-wrapper">\n                                <i class="fa-solid fa-bus select-icon"></i>\n                                <select id="governmentConfiguration"><option value="">Select configuration</option></select>\n                                <i class="fa-solid fa-chevron-down select-arrow"></i>\n                            </div>\n                        </div>\n\n                        <input type="hidden" id="category" name="category" value="">'''
+          s = s[:old.start()] + new + s[old.end():]
+
+          # Remove the old energy field from the calculator, preserving seating markup.
+          energy_block = re.compile(r'\s*<!-- ENERGY -->.*?(?=\s*<!-- SEATING -->)', re.S)
+          s, n = energy_block.subn('', s, count=1)
+          if n != 1:
+              raise SystemExit('Could not locate energy field')
+          s = s.replace('<div class="form-row">\n\n\n                            \n\n\n                            <!-- SEATING -->', '<!-- SEATING -->', 1)
+          # If wrapper remains around seating, remove only that wrapper.
+          s = s.replace('                        </div>\n\n\n                        <!-- VEHICLE -->', '\n\n                        <!-- VEHICLE -->', 1)
+
+          # Remove result Energy row.
+          s = re.sub(r'\s*<div class="detail-row">\s*<span>\s*<i class="fa-solid fa-gas-pump"></i>\s*Energy\s*</span>\s*<strong id="resultEnergy">.*?</strong>\s*</div>', '', s, count=1, flags=re.S)
+
+          # Update the explanatory process copy without changing layout.
+          s = s.replace('Select the appropriate vehicle category,\n                        energy source and seating details.', 'Select the applicable government vehicle class, subclass\n                        and vehicle configuration.')
+
+          # Cache-bust assets.
+          s = s.replace('href="style.css"', 'href="style.css?v=20260828-6"')
+          s = s.replace('src="script.js"', 'src="script.js?v=20260828-6"')
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Replace root JS with hierarchy-aware calculator logic
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('script.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('    energySources: [],\n', '')
+          s=s.replace('        "pageLoader", "category", "energy", "vehicle", "seating", "distance",', '        "pageLoader", "category", "governmentClass", "governmentSubclass", "governmentConfiguration", "vehicle", "seating", "distance",')
+          s=s.replace('        "fareAmount", "resultCategory", "resultEnergy", "resultDistance",', '        "fareAmount", "resultCategory", "resultDistance",')
+          s=s.replace('        "energyCount", "vehicleCount",', '        "vehicleCount",')
+          s=s.replace('    energySources: [],\n', '')
+          # Remove energy loader and selector population blocks.
+          s=re.sub(r'\nasync function loadEnergySources\(\).*?(?=\nfunction populateCategorySelect)', '', s, flags=re.S)
+          s=re.sub(r'\nfunction populateEnergySelect\(\).*?(?=\nfunction populateVehicleSelect)', '', s, flags=re.S)
+          # Replace category population with government hierarchy loader helpers.
+          start=s.index('\nfunction populateCategorySelect()')
+          end=s.index('\nfunction populateVehicleSelect()', start)
+          hierarchy='''\nfunction populateCategorySelect() {\n    const select = elements.governmentClass;\n    if (!select) return;\n    select.innerHTML = "";\n    addPlaceholder(select, "Select government class");\n    state.governmentClasses.forEach(item => {\n        const option=document.createElement("option"); option.value=item.id; option.textContent=item.name; select.appendChild(option);\n    });\n}\n\nfunction populateGovernmentSubclasses() {\n    const cls=state.governmentClasses.find(x=>Number(x.id)===Number(elements.governmentClass?.value));\n    const select=elements.governmentSubclass;\n    if(!select) return;\n    select.innerHTML=""; addPlaceholder(select,"Select government subclass");\n    (cls?.subclasses||[]).forEach(item=>{const o=document.createElement("option");o.value=item.id;o.textContent=item.name;select.appendChild(o);});\n    setGroupVisible(elements.governmentSubclassGroup,!!cls?.subclasses?.length);\n    setGroupVisible(elements.governmentConfigurationGroup,false);\n    if(elements.category) elements.category.value="";\n    updateOperationalCategory();\n}\n\nfunction populateGovernmentConfigurations() {\n    const cls=state.governmentClasses.find(x=>Number(x.id)===Number(elements.governmentClass?.value));\n    const sub=(cls?.subclasses||[]).find(x=>Number(x.id)===Number(elements.governmentSubclass?.value));\n    const select=elements.governmentConfiguration;\n    if(!select) return;\n    select.innerHTML=""; addPlaceholder(select,"Select configuration");\n    (sub?.configurations||[]).forEach(item=>{const o=document.createElement("option");o.value=item.id;o.textContent=item.name;select.appendChild(o);});\n    setGroupVisible(elements.governmentConfigurationGroup,!!sub?.configurations?.length);\n    updateOperationalCategory();\n}\n\nfunction updateOperationalCategory(){\n    const cls=state.governmentClasses.find(x=>Number(x.id)===Number(elements.governmentClass?.value));\n    const sub=(cls?.subclasses||[]).find(x=>Number(x.id)===Number(elements.governmentSubclass?.value));\n    const cfg=(sub?.configurations||[]).find(x=>Number(x.id)===Number(elements.governmentConfiguration?.value));\n    const mapped=cfg?.vehicle_categories?.[0] || sub?.vehicle_categories?.[0] || null;\n    if(elements.category) elements.category.value=mapped?.name || "";\n    updateCategoryRequirements();\n    populateVehicleSelect();\n}\n\n'''
+          s=s[:start]+hierarchy+s[end:]
+          # Filter vehicles no longer by energy.
+          s=re.sub(r'\n    const energy = getSelectedEnergyObject\(\);', '', s)
+          s=re.sub(r'\n    if \(energy\) vehicles = vehicles\.filter\(v => Number\(v\.energy_source_id\) === Number\(energy\.id\)\);', '', s)
+          # Event listeners: remove energy and add hierarchy listeners.
+          s=s.replace('    elements.energy?.addEventListener("change", handleEnergyChange);\n', '')
+          s=s.replace('    elements.category?.addEventListener("change", handleCategoryChange);', '    elements.governmentClass?.addEventListener("change", populateGovernmentSubclasses);\n    elements.governmentSubclass?.addEventListener("change", populateGovernmentConfigurations);')
+          s=re.sub(r'\nfunction handleEnergyChange\(\).*?(?=\nfunction handleSeatingChange)', '', s, flags=re.S)
+          # Category change now comes from hierarchy.
+          s=re.sub(r'\nfunction handleCategoryChange\(\).*?(?=\nfunction handleSeatingChange)', '', s, flags=re.S)
+          # Calculate request: remove energy requirement and field.
+          s=s.replace('    const energy = getSelectedEnergyObject();\n', '')
+          s=s.replace('    if (!energy) return showCalculationError("Please select a fuel or energy source.");\n', '')
+          s=s.replace('    const requestBody = { category: category.name, energy_source: energy.name, distance_km: distance };', '    const requestBody = { category: category.name, distance_km: distance };')
+          s=s.replace('    if (elements.resultEnergy) elements.resultEnergy.textContent = calculation.energy_source || "—";\n', '')
+          # Remove stale energy helper.
+          s=re.sub(r'\nfunction getSelectedEnergyObject\(\).*?(?=\nfunction getSelectedSeating)', '', s, flags=re.S)
+          # Initialize hierarchy endpoint and don't call energy endpoint.
+          s=s.replace('        "energySources: []"', '        "governmentClasses: []"')
+          # Inject state if old declaration format is present.
+          s=s.replace('    categories: [],\n    energySources: [],\n    vehicles: [],', '    categories: [],\n    governmentClasses: [],\n    vehicles: [],')
+          s=s.replace('    const [health, categories, energySources, vehicles] = await Promise.all([\n        loadHealth(),\n        loadCategories(),\n        loadEnergySources(),\n        loadVehicles()\n    ]);', '    const [health, categories, government, vehicles] = await Promise.all([\n        loadHealth(),\n        loadCategories(),\n        apiRequest(`${API_BASE}/government-classification`),\n        loadVehicles()\n    ]);\n    state.governmentClasses = Array.isArray(government?.classes) ? government.classes : [];')
+          s=s.replace('    updateStats();', '    populateCategorySelect();\n    updateStats();')
+          # Handle known old initialization implementation if Promise block differs.
+          s=re.sub(r'\n\s*await loadEnergySources\(\);', '', s)
+          # Remove energy count updates and hero energy updates.
+          s=re.sub(r'\n\s*if \(elements\.energyCount\) elements\.energyCount\.textContent = .*?;', '', s)
+          s=re.sub(r'\n\s*if \(elements\.heroEnergy\).*?;', '', s)
+          # Make category object derive from hidden operational category.
+          s=s.replace('const select = elements.category;', 'const select = elements.governmentClass;', 1) if False else s
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Add backend classification endpoint
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('backend/main.py')
+          s=p.read_text(encoding='utf-8')
+          marker='\n@app.get("/api/energy-sources")'
+          endpoint='''\n\n@app.get("/api/government-classification")\ndef get_government_classification():\n    """Return the government-oriented Fare Keralam vehicle hierarchy."""\n    try:\n        classes = fetch_all("""\n            SELECT id, name, description, display_order\n            FROM government_vehicle_classes\n            WHERE active = TRUE\n            ORDER BY display_order, id\n        """)\n        result=[]\n        for cls in classes:\n            subclasses=fetch_all("""\n                SELECT id, name, description, display_order\n                FROM government_vehicle_subclasses\n                WHERE class_id=%s AND active=TRUE\n                ORDER BY display_order, id\n            """, (cls["id"],))\n            sub_result=[]\n            for sub in subclasses:\n                configs=fetch_all("""\n                    SELECT id, name, description, display_order\n                    FROM government_vehicle_configurations\n                    WHERE subclass_id=%s AND active=TRUE\n                    ORDER BY display_order, id\n                """, (sub["id"],))\n                for cfg in configs:\n                    mapped=fetch_all("""\n                        SELECT vc.id, vc.name, vc.description\n                        FROM government_vehicle_category_map m\n                        JOIN vehicle_categories vc ON vc.id=m.vehicle_category_id\n                        WHERE m.configuration_id=%s AND m.active=TRUE\n                        ORDER BY vc.id\n                    """, (cfg["id"],))\n                    cfg["vehicle_categories"]=mapped\n                mapped=fetch_all("""\n                    SELECT vc.id, vc.name, vc.description\n                    FROM government_vehicle_category_map m\n                    JOIN vehicle_categories vc ON vc.id=m.vehicle_category_id\n                    WHERE m.subclass_id=%s AND m.active=TRUE\n                    ORDER BY vc.id\n                """, (sub["id"],))\n                sub["configurations"]=configs\n                sub["vehicle_categories"]=mapped\n                sub_result.append(sub)\n            cls["subclasses"]=sub_result\n            result.append(cls)\n        return {"success": True, "classes": result}\n    except HTTPException:\n        raise\n    except Exception as exc:\n        print("Government classification error:", exc)\n        raise HTTPException(status_code=503, detail="Government classification is not initialized. Run the database migration.")\n'''
+          if '/api/government-classification' not in s:
+              s=s.replace(marker,endpoint+marker)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate generated frontend and backend syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('index.html').read_text(encoding='utf-8')
+          js=Path('script.js').read_text(encoding='utf-8')
+          backend=Path('backend/main.py').read_text(encoding='utf-8')
+          assert 'Fuel / energy' not in html
+          assert 'id="energy"' not in html
+          assert 'governmentClass' in html and 'governmentSubclass' in html
+          assert 'energy_source: energy.name' not in js
+          assert '/government-classification' in js
+          compile(backend, 'backend/main.py', 'exec')
+          print('validation ok')
+          PY
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html script.js backend/main.py
+          git diff --cached --quiet && exit 0
+          git commit -m "Build government fare hierarchy and restore root frontend"
+          git push
