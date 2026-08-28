@@ -1,4 +1,3 @@
-```python
 # ============================================================
 # FARE KERALAM - MAIN API
 # Production-ready version
@@ -1767,4 +1766,3 @@ if __name__ == "__main__":
         port=port,
         reload=True,
     )
-```
