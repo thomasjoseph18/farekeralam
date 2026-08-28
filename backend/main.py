@@ -176,6 +176,25 @@ def get_categories():
     return {"success": True, "count": len(rows), "categories": rows}
 
 
+
+@app.get("/api/government-classification")
+def get_government_classification():
+    try:
+        classes=fetch_all("SELECT id,name,description,display_order FROM government_vehicle_classes WHERE active=TRUE ORDER BY display_order,id")
+        for cls in classes:
+            subs=fetch_all("SELECT id,name,description,display_order FROM government_vehicle_subclasses WHERE class_id=%s AND active=TRUE ORDER BY display_order,id",(cls["id"],))
+            for sub in subs:
+                configs=fetch_all("SELECT id,name,description,display_order FROM government_vehicle_configurations WHERE subclass_id=%s AND active=TRUE ORDER BY display_order,id",(sub["id"],))
+                for cfg in configs:
+                    cfg["vehicle_categories"]=fetch_all("SELECT vc.id,vc.name,vc.description FROM government_vehicle_category_map m JOIN vehicle_categories vc ON vc.id=m.vehicle_category_id WHERE m.configuration_id=%s AND m.active=TRUE ORDER BY vc.id",(cfg["id"],))
+                sub["configurations"]=configs
+                sub["vehicle_categories"]=fetch_all("SELECT vc.id,vc.name,vc.description FROM government_vehicle_category_map m JOIN vehicle_categories vc ON vc.id=m.vehicle_category_id WHERE m.subclass_id=%s AND m.active=TRUE ORDER BY vc.id",(sub["id"],))
+            cls["subclasses"]=subs
+        return {"success":True,"classes":classes}
+    except Exception as exc:
+        print("Government classification error:",exc)
+        raise HTTPException(status_code=503,detail="Government classification is not initialized. Run the database migration.")
+
 @app.get("/api/energy-sources")
 def get_energy_sources():
     rows = fetch_all("""
