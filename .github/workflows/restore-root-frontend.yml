@@ -1,0 +1,62 @@
+name: Restore root frontend and remove fuel selector
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'Restore original root frontend with fuel selector removed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore original root index
+        run: git checkout 1de5ffb6faf477d9d22b2ff2f0caf23f6a062a34 -- index.html
+
+      - name: Remove only fuel selector while preserving original design
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          start = s.index('                        <div class="form-row">')
+          energy = s.index('                            <!-- ENERGY -->', start)
+          seating = s.index('                            <!-- SEATING -->', energy)
+          # Keep the original seating block, but remove the energy block and its form-row wrapper.
+          # Find the end of the seating block immediately before the VEHICLE section.
+          vehicle = s.index('                        <!-- VEHICLE -->', seating)
+          seating_block = s[seating:vehicle]
+          # Strip the form-row wrapper from around the seating block.
+          seating_block = seating_block.replace('                            <!-- SEATING -->', '                        <!-- SEATING -->', 1)
+          seating_block = seating_block.replace('                        </div>\n\n\n                        <!-- VEHICLE -->', '                        <!-- VEHICLE -->', 1)
+          # The replacement above is intentionally normalized below using the known boundaries.
+          s = s[:start] + seating_block + s[vehicle:]
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Cache-bust active assets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('href="style.css"', 'href="style.css?v=20260828-5"')
+          s = s.replace('src="script.js"', 'src="script.js?v=20260828-5"')
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit restored root frontend
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Restore original root frontend with fuel selector removed"
+          git push
