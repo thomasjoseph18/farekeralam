@@ -1,0 +1,65 @@
+name: Apply government fare hierarchy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'Apply government fare hierarchy'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Restore known-good root HTML
+        run: git checkout 1de5ffb6faf477d9d22b2ff2f0caf23f6a062a34 -- index.html
+      - name: Update HTML without changing design
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html'); s=p.read_text()
+          # Remove hero fuel value only.
+          s=re.sub(r'<i class="fa-solid fa-gas-pump"></i>\s*<span id="heroEnergy">.*?</span>','',s,count=1,flags=re.S)
+          # Replace category field with three hierarchy selects + hidden operational category.
+          pat=r'<div class="form-group">\s*<label for="category">.*?<select\s+id="category".*?</select>\s*<i class="fa-solid fa-chevron-down select-arrow"></i>\s*</div>\s*</div>'
+          rep='''<div class="form-group">\n<label for="governmentClass">Government vehicle class</label>\n<div class="select-wrapper"><i class="fa-solid fa-layer-group select-icon"></i><select id="governmentClass" required><option value="">Loading classifications...</option></select><i class="fa-solid fa-chevron-down select-arrow"></i></div>\n</div>\n<div class="form-group" id="governmentSubclassGroup" style="display:none"><label for="governmentSubclass">Government subclass</label><div class="select-wrapper"><i class="fa-solid fa-list select-icon"></i><select id="governmentSubclass"><option value="">Select subclass</option></select><i class="fa-solid fa-chevron-down select-arrow"></i></div></div>\n<div class="form-group" id="governmentConfigurationGroup" style="display:none"><label for="governmentConfiguration">Vehicle configuration</label><div class="select-wrapper"><i class="fa-solid fa-bus select-icon"></i><select id="governmentConfiguration"><option value="">Select configuration</option></select><i class="fa-solid fa-chevron-down select-arrow"></i></div></div>\n<input type="hidden" id="category" name="category" value="">'''
+          s,n=re.subn(pat,rep,s,count=1,flags=re.S)
+          if n!=1: raise SystemExit('category field not found')
+          # Remove calculator fuel block, retaining seating.
+          s,n=re.subn(r'\s*<!-- ENERGY -->.*?(?=\s*<!-- SEATING -->)','',s,count=1,flags=re.S)
+          if n!=1: raise SystemExit('energy block not found')
+          s=s.replace('<div class="form-row">\n\n\n                            \n\n\n                            <!-- SEATING -->','<!-- SEATING -->',1)
+          s=s.replace('                        </div>\n\n\n                        <!-- VEHICLE -->','\n\n                        <!-- VEHICLE -->',1)
+          # Remove result energy row and energy quick-stat card.
+          s=re.sub(r'\s*<div class="detail-row">\s*<span>\s*<i class="fa-solid fa-gas-pump"></i>\s*Energy\s*</span>\s*<strong id="resultEnergy">.*?</strong>\s*</div>','',s,count=1,flags=re.S)
+          s=re.sub(r'\s*<div class="stat-box">\s*<div class="stat-box-icon">\s*<i class="fa-solid fa-bolt"></i>.*?</div>\s*</div>\s*</div>', '', s, count=1, flags=re.S)
+          s=s.replace('Select the appropriate vehicle category,\n                        energy source and seating details.','Select the applicable government vehicle class, subclass\n                        and vehicle configuration.')
+          s=s.replace('href="style.css"','href="style.css?v=20260828-8"').replace('src="script.js"','src="script.js?v=20260828-8"')
+          p.write_text(s)
+          PY
+      - name: Add classification API
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('backend/main.py'); s=p.read_text()
+          if '/api/government-classification' not in s:
+              marker='\n@app.get("/api/energy-sources")'
+              endpoint='''\n\n@app.get("/api/government-classification")\ndef get_government_classification():\n    try:\n        classes=fetch_all("SELECT id,name,description,display_order FROM government_vehicle_classes WHERE active=TRUE ORDER BY display_order,id")\n        for cls in classes:\n            subs=fetch_all("SELECT id,name,description,display_order FROM government_vehicle_subclasses WHERE class_id=%s AND active=TRUE ORDER BY display_order,id",(cls["id"],))\n            for sub in subs:\n                configs=fetch_all("SELECT id,name,description,display_order FROM government_vehicle_configurations WHERE subclass_id=%s AND active=TRUE ORDER BY display_order,id",(sub["id"],))\n                for cfg in configs:\n                    cfg["vehicle_categories"]=fetch_all("SELECT vc.id,vc.name,vc.description FROM government_vehicle_category_map m JOIN vehicle_categories vc ON vc.id=m.vehicle_category_id WHERE m.configuration_id=%s AND m.active=TRUE ORDER BY vc.id",(cfg["id"],))\n                sub["configurations"]=configs\n                sub["vehicle_categories"]=fetch_all("SELECT vc.id,vc.name,vc.description FROM government_vehicle_category_map m JOIN vehicle_categories vc ON vc.id=m.vehicle_category_id WHERE m.subclass_id=%s AND m.active=TRUE ORDER BY vc.id",(sub["id"],))\n            cls["subclasses"]=subs\n        return {"success":True,"classes":classes}\n    except Exception as exc:\n        print("Government classification error:",exc)\n        raise HTTPException(status_code=503,detail="Government classification is not initialized. Run the database migration.")\n'''
+              s=s.replace(marker,endpoint+marker); p.write_text(s)
+          PY
+      - name: Validate and commit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          compile(Path('backend/main.py').read_text(),'backend/main.py','exec')
+          h=Path('index.html').read_text()
+          assert 'Fuel / energy' not in h and 'id="energy"' not in h
+          assert 'governmentClass' in h and 'governmentSubclass' in h
+          print('ok')
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add index.html backend/main.py
+          git diff --cached --quiet || (git commit -m 'Apply government fare hierarchy' && git push)
