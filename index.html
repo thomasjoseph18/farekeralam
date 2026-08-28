@@ -1,8 +1,1861 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="Fare Keralam - Smart, transparent and fair passenger fare calculation for Kerala."><meta name="theme-color" content="#07111f"><title>Fare Keralam | Fair Fares for Kerala</title><link rel="stylesheet" href="style.css?v=20260828-4"></head><body>
-<header class="site-header"><div class="container nav-container"><a href="#home" class="brand"><div class="brand-mark"><span>F</span></div><div class="brand-text"><strong>Fare</strong><span>Keralam</span></div></a><nav class="main-nav" id="mainNav"><a href="#home" class="nav-link active">Home</a><a href="#calculator" class="nav-link">Fare Calculator</a><a href="#how-it-works" class="nav-link">How It Works</a><a href="#about" class="nav-link">About</a></nav><div class="nav-actions"><a href="#calculator" class="nav-cta">Calculate Fare <i class="fa-solid fa-arrow-right"></i></a><button class="mobile-menu-btn" id="mobileMenuBtn" type="button"><i class="fa-solid fa-bars"></i></button></div></div></header>
-<main><section class="hero" id="home"><div class="container hero-grid"><div class="hero-content"><div class="eyebrow"><span class="eyebrow-dot"></span>Built for Kerala</div><h1>Know your <span>fair fare.</span></h1><p class="hero-description">Fare Keralam makes passenger fares easier to understand using applicable fare rules, vehicle details and journey distance.</p><div class="hero-actions"><a href="#calculator" class="btn btn-primary">Calculate Your Fare <i class="fa-solid fa-arrow-right"></i></a><a href="#how-it-works" class="btn btn-secondary">How it works</a></div></div><div class="hero-visual"><div class="hero-card"><div class="hero-card-top"><div><span class="small-label">FARE ESTIMATE</span><h3>Your journey</h3></div><div class="status-pill" id="heroApiStatus"><span></span> API</div></div><div class="mini-route"><div class="route-point"><span class="route-icon"><i class="fa-solid fa-location-dot"></i></span><div><small>Vehicle</small><strong id="heroVehicle">—</strong></div></div><div class="route-line"><span></span><span></span><span></span></div><div class="route-point"><span class="route-icon destination"><i class="fa-solid fa-flag-checkered"></i></span><div><small>Distance</small><strong id="heroDistance">—</strong></div></div></div><div class="hero-price"><span>Estimated fare</span><strong id="heroFare">₹—</strong><small>Based on applicable fare rule</small></div><div class="hero-card-footer"><span><i class="fa-solid fa-scale-balanced"></i> Fare rule</span><span><i class="fa-solid fa-check"></i> Passenger-first</span></div></div></div></div></section>
-<section class="stats-section"><div class="container stats-grid"><div class="stat-box"><div class="stat-box-icon"><i class="fa-solid fa-layer-group"></i></div><div><strong id="categoryCount">—</strong><span>Vehicle categories</span></div></div><div class="stat-box"><div class="stat-box-icon"><i class="fa-solid fa-car-side"></i></div><div><strong id="vehicleCountStat">—</strong><span>Vehicle options</span></div></div><div class="stat-box"><div class="stat-box-icon"><i class="fa-solid fa-scale-balanced"></i></div><div><strong>Fair</strong><span>Government fare rules</span></div></div><div class="stat-box"><div class="stat-box-icon"><i class="fa-solid fa-shield-halved"></i></div><div><strong>Clear</strong><span>Passenger-first approach</span></div></div></div></section>
-<section class="calculator-section section" id="calculator"><div class="container"><div class="section-heading centered"><div class="eyebrow dark"><span class="eyebrow-dot"></span>Fare Calculator</div><h2>Calculate your journey fare</h2><p>Select your vehicle category, add any required vehicle details, enter your distance, and get the applicable fare.</p></div><div class="calculator-layout"><div class="calculator-card"><div class="card-heading"><div><span class="step-label">STEP 01</span><h3>Journey details</h3></div><div class="calculator-icon"><i class="fa-solid fa-calculator"></i></div></div><form id="fareForm"><div class="form-group"><label for="category">Vehicle category</label><div class="select-wrapper"><i class="fa-solid fa-car-side select-icon"></i><select id="category" name="category" required><option value="">Loading categories...</option></select><i class="fa-solid fa-chevron-down select-arrow"></i></div></div><div class="form-group" id="seatingGroup"><label for="seating">Seating capacity</label><div class="select-wrapper"><i class="fa-solid fa-users select-icon"></i><select id="seating" name="seating"><option value="">Select seats</option></select><i class="fa-solid fa-chevron-down select-arrow"></i></div></div><div class="form-group" id="vehicleGroup"><label for="vehicle">Vehicle model <span class="optional">Optional</span></label><div class="select-wrapper"><i class="fa-solid fa-car select-icon"></i><select id="vehicle" name="vehicle"><option value="">Select vehicle model</option></select><i class="fa-solid fa-chevron-down select-arrow"></i></div></div><div class="form-group"><label for="distance">Journey distance</label><div class="distance-input"><div class="distance-icon"><i class="fa-solid fa-route"></i></div><input type="number" id="distance" name="distance" min="0.1" step="0.1" placeholder="Enter distance" required><span>km</span></div></div><button type="submit" class="calculate-btn" id="calculateBtn"><span class="button-text">Calculate Fare</span><span class="button-loader"><i class="fa-solid fa-spinner fa-spin"></i> Calculating...</span><i class="fa-solid fa-arrow-right button-arrow"></i></button><div class="form-note"><i class="fa-solid fa-circle-info"></i><span>Fuel type is not required. Fare is determined by the applicable vehicle category and government fare rule.</span></div></form></div>
-<div class="result-card" id="resultCard"><div class="result-empty" id="resultEmpty"><div class="result-empty-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div><h3>Your fare will appear here</h3><p>Complete the journey details and calculate your fare.</p><div class="result-tip"><i class="fa-solid fa-lightbulb"></i><span>Tip: Try an Auto Rickshaw for a 5 km journey.</span></div></div><div class="result-success" id="resultSuccess"><div class="result-header"><div><span class="result-label">ESTIMATED FARE</span><h3>Your journey</h3></div><div class="success-check"><i class="fa-solid fa-check"></i></div></div><div class="fare-total"><span>₹</span><strong id="fareAmount">0.00</strong></div><div class="result-details"><div class="detail-row"><span><i class="fa-solid fa-car-side"></i> Category</span><strong id="resultCategory">—</strong></div><div class="detail-row"><span><i class="fa-solid fa-route"></i> Distance</span><strong><span id="resultDistance">—</span> km</strong></div><div class="detail-row"><span><i class="fa-solid fa-users"></i> Seating</span><strong id="resultSeats">—</strong></div><div class="detail-row"><span><i class="fa-solid fa-car"></i> Vehicle</span><strong id="resultVehicle">—</strong></div></div><div class="fare-breakdown" id="fareBreakdown"><div class="breakdown-title"><i class="fa-solid fa-list-check"></i> Fare breakdown</div><div class="breakdown-row"><span>Minimum fare</span><strong>₹<span id="minimumFare">0.00</span></strong></div><div class="breakdown-row"><span>Additional distance</span><strong><span id="additionalDistance">0.00</span> km</strong></div><div class="breakdown-row"><span>Additional fare</span><strong>₹<span id="additionalFare">0.00</span></strong></div></div><div class="slab-section" id="slabSection"><div class="breakdown-title"><i class="fa-solid fa-layer-group"></i> Rate slabs</div><div id="slabBreakdown" class="slab-breakdown"></div></div><div class="fare-rule-note"><i class="fa-solid fa-shield-halved"></i><div><strong id="calculationMethod">Government fare rule</strong><p id="fareRuleNote">Calculated using the applicable fare rule available in the system.</p></div></div><button class="reset-btn" id="resetBtn" type="button"><i class="fa-solid fa-rotate-left"></i> Calculate another journey</button></div><div class="result-error" id="resultError"><div class="error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><h3>We couldn't calculate the fare</h3><p id="errorMessage">Something went wrong. Please try again.</p><button class="retry-btn" id="retryBtn" type="button">Try again</button></div></div></div></div></section>
-<section class="how-section section" id="how-it-works"><div class="container"><div class="section-heading centered"><div class="eyebrow"><span class="eyebrow-dot"></span>Simple by design</div><h2>How Fare Keralam works</h2><p>Fare calculation should be understandable for passengers and drivers.</p></div></div></section><section class="principles-section section" id="about"><div class="container"><div class="section-heading centered"><div class="eyebrow dark"><span class="eyebrow-dot"></span>Our approach</div><h2>Simple. Transparent. Passenger-first.</h2></div></div></section></main>
-<footer class="site-footer"><div class="container"><div class="footer-status"><span class="status-dot"></span><span id="footerStatus">Checking API...</span></div><p class="footer-version">Fare Keralam API v2.3.0</p><p>© <span id="currentYear"></span> Fare Keralam. Built for Kerala.</p></div></footer><script src="script.js?v=20260828-4"></script></body></html>
+<!DOCTYPE html><html lang="en">
+<head>
+    <meta charset="UTF-8"><meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<meta
+    name="description"
+    content="Fare Keralam - Smart, transparent and fair passenger fare calculation for Kerala."
+>
+
+<meta name="theme-color" content="#07111f">
+
+<title>Fare Keralam | Fair Fares for Kerala</title>
+
+<!-- =====================================================
+     GOOGLE FONTS
+====================================================== -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+>
+
+<link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap"
+    rel="stylesheet"
+>
+
+<!-- =====================================================
+     FONT AWESOME
+====================================================== -->
+
+<link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+>
+
+<!-- =====================================================
+     MAIN CSS
+====================================================== -->
+
+<link rel="stylesheet" href="style.css?v=20260828-5">
+
+</head><body><!-- =====================================================
+     PAGE LOADER
+====================================================== -->
+
+<div class="page-loader" id="pageLoader">
+
+    <div class="loader-logo">
+        <span>F</span>
+    </div>
+
+    <div class="loader-line">
+        <div></div>
+    </div>
+
+    <p>Loading Fare Keralam</p>
+
+</div>
+
+
+<!-- =====================================================
+     HEADER
+====================================================== -->
+
+<header class="site-header" id="siteHeader">
+
+    <div class="container nav-container">
+
+        <a href="#home" class="brand">
+
+            <div class="brand-mark">
+                <span>F</span>
+            </div>
+
+            <div class="brand-text">
+                <strong>Fare</strong>
+                <span>Keralam</span>
+            </div>
+
+        </a>
+
+
+        <nav class="main-nav" id="mainNav">
+
+            <a
+                href="#home"
+                class="nav-link active"
+            >
+                Home
+            </a>
+
+            <a
+                href="#calculator"
+                class="nav-link"
+            >
+                Fare Calculator
+            </a>
+
+            <a
+                href="#how-it-works"
+                class="nav-link"
+            >
+                How It Works
+            </a>
+
+            <a
+                href="#about"
+                class="nav-link"
+            >
+                About
+            </a>
+
+        </nav>
+
+
+        <div class="nav-actions">
+
+            <a
+                href="#calculator"
+                class="nav-cta"
+            >
+                Calculate Fare
+
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+
+            <button
+                class="mobile-menu-btn"
+                id="mobileMenuBtn"
+                type="button"
+                aria-label="Open navigation"
+            >
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =====================================================
+     MAIN
+====================================================== -->
+
+<main>
+
+
+    <!-- =================================================
+         HERO
+    ================================================== -->
+
+    <section
+        class="hero"
+        id="home"
+    >
+
+        <div class="hero-glow hero-glow-one"></div>
+        <div class="hero-glow hero-glow-two"></div>
+
+
+        <div class="container hero-grid">
+
+            <div class="hero-content">
+
+                <div class="eyebrow">
+
+                    <span class="eyebrow-dot"></span>
+
+                    Built for Kerala
+
+                </div>
+
+
+                <h1>
+
+                    Know your
+
+                    <span>fair fare.</span>
+
+                </h1>
+
+
+                <p class="hero-description">
+
+                    Fare Keralam makes passenger fares easier
+                    to understand by combining applicable fare
+                    rules, vehicle details and journey distance
+                    in one simple calculator.
+
+                </p>
+
+
+                <div class="hero-actions">
+
+                    <a
+                        href="#calculator"
+                        class="btn btn-primary"
+                    >
+                        Calculate Your Fare
+
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+
+
+                    <a
+                        href="#how-it-works"
+                        class="btn btn-secondary"
+                    >
+
+                        <i class="fa-regular fa-circle-play"></i>
+
+                        How it works
+
+                    </a>
+
+                </div>
+
+
+                <div class="hero-trust">
+
+                    <div class="trust-item">
+
+                        <i class="fa-solid fa-database"></i>
+
+                        <span>
+                            Rule-based
+                        </span>
+
+                    </div>
+
+
+                    <div class="trust-item">
+
+                        <i class="fa-solid fa-shield-halved"></i>
+
+                        <span>
+                            Transparent
+                        </span>
+
+                    </div>
+
+
+                    <div class="trust-item">
+
+                        <i class="fa-solid fa-mobile-screen-button"></i>
+
+                        <span>
+                            Mobile friendly
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 HERO CARD
+            ================================================== -->
+
+            <div class="hero-visual">
+
+                <div class="hero-card">
+
+                    <div class="hero-card-top">
+
+                        <div>
+
+                            <span class="small-label">
+                                FARE ESTIMATE
+                            </span>
+
+                            <h3>
+                                Your journey
+                            </h3>
+
+                        </div>
+
+
+                        <div
+                            class="status-pill"
+                            id="heroApiStatus"
+                        >
+
+                            <span></span>
+
+                            API
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="mini-route">
+
+                        <div class="route-point">
+
+                            <span class="route-icon">
+
+                                <i class="fa-solid fa-location-dot"></i>
+
+                            </span>
+
+                            <div>
+
+                                <small>
+                                    Vehicle
+                                </small>
+
+                                <strong id="heroVehicle">
+                                    Auto Rickshaw
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="route-line">
+
+                            <span></span>
+                            <span></span>
+                            <span></span>
+
+                        </div>
+
+
+                        <div class="route-point">
+
+                            <span class="route-icon destination">
+
+                                <i class="fa-solid fa-flag-checkered"></i>
+
+                            </span>
+
+                            <div>
+
+                                <small>
+                                    Distance
+                                </small>
+
+                                <strong id="heroDistance">
+                                    5.0 km
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="hero-price">
+
+                        <span>
+                            Estimated fare
+                        </span>
+
+                        <strong id="heroFare">
+                            ₹82.50
+                        </strong>
+
+                        <small>
+                            Based on applicable fare rule
+                        </small>
+
+                    </div>
+
+
+                    <div class="hero-card-footer">
+
+                        <span>
+
+                            <i class="fa-solid fa-gas-pump"></i>
+
+                            <span id="heroEnergy">
+                                Petrol
+                            </span>
+
+                        </span>
+
+
+                        <span>
+
+                            <i class="fa-solid fa-scale-balanced"></i>
+
+                            Government rule
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="floating-stat stat-one">
+
+                    <div class="stat-icon">
+
+                        <i class="fa-solid fa-car"></i>
+
+                    </div>
+
+                    <div>
+
+                        <strong id="vehicleCount">
+                            1+
+                        </strong>
+
+                        <span>
+                            Vehicle records
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="floating-stat stat-two">
+
+                    <div class="stat-icon green">
+
+                        <i class="fa-solid fa-check"></i>
+
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Transparent
+                        </strong>
+
+                        <span>
+                            Fare calculation
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="hero-bottom-fade"></div>
+
+    </section>
+
+
+    <!-- =================================================
+         QUICK STATS
+    ================================================== -->
+
+    <section class="stats-section">
+
+        <div class="container stats-grid">
+
+            <div class="stat-box">
+
+                <div class="stat-box-icon">
+
+                    <i class="fa-solid fa-layer-group"></i>
+
+                </div>
+
+                <div>
+
+                    <strong id="categoryCount">
+                        —
+                    </strong>
+
+                    <span>
+                        Vehicle categories
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-box">
+
+                <div class="stat-box-icon">
+
+                    <i class="fa-solid fa-bolt"></i>
+
+                </div>
+
+                <div>
+
+                    <strong id="energyCount">
+                        —
+                    </strong>
+
+                    <span>
+                        Energy sources
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-box">
+
+                <div class="stat-box-icon">
+
+                    <i class="fa-solid fa-car-side"></i>
+
+                </div>
+
+                <div>
+
+                    <strong id="vehicleCountStat">
+                        —
+                    </strong>
+
+                    <span>
+                        Vehicle options
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-box">
+
+                <div class="stat-box-icon">
+
+                    <i class="fa-solid fa-scale-balanced"></i>
+
+                </div>
+
+                <div>
+
+                    <strong>
+                        Fair
+                    </strong>
+
+                    <span>
+                        Passenger-first approach
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         CALCULATOR
+    ================================================== -->
+
+    <section
+        class="calculator-section section"
+        id="calculator"
+    >
+
+        <div class="container">
+
+
+            <div class="section-heading centered">
+
+                <div class="eyebrow dark">
+
+                    <span class="eyebrow-dot"></span>
+
+                    Fare Calculator
+
+                </div>
+
+
+                <h2>
+                    Calculate your journey fare
+                </h2>
+
+
+                <p>
+
+                    Enter your journey details and Fare Keralam
+                    will calculate the applicable fare using the
+                    connected fare rules.
+
+                </p>
+
+            </div>
+
+
+            <div class="calculator-layout">
+
+
+                <!-- =================================================
+                     CALCULATOR FORM
+                ================================================== -->
+
+                <div class="calculator-card">
+
+
+                    <div class="card-heading">
+
+                        <div>
+
+                            <span class="step-label">
+                                STEP 01
+                            </span>
+
+                            <h3>
+                                Journey details
+                            </h3>
+
+                        </div>
+
+
+                        <div class="calculator-icon">
+
+                            <i class="fa-solid fa-calculator"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <form id="fareForm">
+
+
+                        <!-- CATEGORY -->
+
+                        <div class="form-group">
+
+                            <label for="category">
+                                Vehicle category
+                            </label>
+
+                            <div class="select-wrapper">
+
+                                <i class="fa-solid fa-car-side select-icon"></i>
+
+                                <select
+                                    id="category"
+                                    name="category"
+                                    required
+                                >
+
+                                    <option value="">
+                                        Loading categories...
+                                    </option>
+
+                                </select>
+
+                                <i class="fa-solid fa-chevron-down select-arrow"></i>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ENERGY + SEATING -->
+
+                        <!-- SEATING -->
+
+                            <div
+                                class="form-group"
+                                id="seatingGroup"
+                            >
+
+                                <label for="seating">
+                                    Seating capacity
+                                </label>
+
+                                <div class="select-wrapper">
+
+                                    <i class="fa-solid fa-users select-icon"></i>
+
+                                    <select
+                                        id="seating"
+                                        name="seating"
+                                    >
+
+                                        <option value="">
+                                            Select seats
+                                        </option>
+
+                                    </select>
+
+                                    <i class="fa-solid fa-chevron-down select-arrow"></i>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- VEHICLE -->
+
+                        <div
+                            class="form-group"
+                            id="vehicleGroup"
+                        >
+
+                            <label for="vehicle">
+
+                                Vehicle model
+
+                                <span class="optional">
+                                    Optional
+                                </span>
+
+                            </label>
+
+
+                            <div class="select-wrapper">
+
+                                <i class="fa-solid fa-car select-icon"></i>
+
+                                <select
+                                    id="vehicle"
+                                    name="vehicle"
+                                >
+
+                                    <option value="">
+                                        Select vehicle model
+                                    </option>
+
+                                </select>
+
+                                <i class="fa-solid fa-chevron-down select-arrow"></i>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- DISTANCE -->
+
+                        <div class="form-group">
+
+                            <label for="distance">
+                                Journey distance
+                            </label>
+
+
+                            <div class="distance-input">
+
+                                <div class="distance-icon">
+
+                                    <i class="fa-solid fa-route"></i>
+
+                                </div>
+
+
+                                <input
+                                    type="number"
+                                    id="distance"
+                                    name="distance"
+                                    min="0.1"
+                                    step="0.1"
+                                    placeholder="Enter distance"
+                                    required
+                                >
+
+
+                                <span>
+                                    km
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- CALCULATE BUTTON -->
+
+                        <button
+                            type="submit"
+                            class="calculate-btn"
+                            id="calculateBtn"
+                        >
+
+                            <span class="button-text">
+                                Calculate Fare
+                            </span>
+
+
+                            <span class="button-loader">
+
+                                <i class="fa-solid fa-spinner fa-spin"></i>
+
+                                Calculating...
+
+                            </span>
+
+
+                            <i class="fa-solid fa-arrow-right button-arrow"></i>
+
+                        </button>
+
+
+                        <div class="form-note">
+
+                            <i class="fa-solid fa-circle-info"></i>
+
+                            <span>
+
+                                Final fares depend on the applicable
+                                fare rules available in the system.
+
+                            </span>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+
+                <!-- =================================================
+                     RESULT CARD
+                ================================================== -->
+
+                <div
+                    class="result-card"
+                    id="resultCard"
+                >
+
+
+                    <!-- EMPTY -->
+
+                    <div
+                        class="result-empty"
+                        id="resultEmpty"
+                    >
+
+                        <div class="result-empty-icon">
+
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+
+                        </div>
+
+
+                        <h3>
+                            Your fare will appear here
+                        </h3>
+
+
+                        <p>
+
+                            Complete the journey details and
+                            calculate your fare.
+
+                        </p>
+
+
+                        <div class="result-tip">
+
+                            <i class="fa-solid fa-lightbulb"></i>
+
+                            <span>
+                                Tip: Try an Auto Rickshaw for
+                                a 5 km journey.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- SUCCESS -->
+
+                    <div
+                        class="result-success"
+                        id="resultSuccess"
+                    >
+
+
+                        <div class="result-header">
+
+                            <div>
+
+                                <span class="result-label">
+                                    ESTIMATED FARE
+                                </span>
+
+                                <h3>
+                                    Your journey
+                                </h3>
+
+                            </div>
+
+
+                            <div class="success-check">
+
+                                <i class="fa-solid fa-check"></i>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- FARE -->
+
+                        <div class="fare-display">
+
+                            <span>
+                                ₹
+                            </span>
+
+                            <strong id="fareAmount">
+                                0.00
+                            </strong>
+
+                        </div>
+
+
+                        <div class="result-status">
+
+                            <span class="online-dot"></span>
+
+                            <span id="calculationMethod">
+                                Database fare rule
+                            </span>
+
+                        </div>
+
+
+                        <!-- BASIC DETAILS -->
+
+                        <div class="result-details">
+
+
+                            <div class="detail-row">
+
+                                <span>
+
+                                    <i class="fa-solid fa-car-side"></i>
+
+                                    Category
+
+                                </span>
+
+                                <strong id="resultCategory">
+                                    —
+                                </strong>
+
+                            </div>
+
+
+                            <div class="detail-row">
+
+                                <span>
+
+                                    <i class="fa-solid fa-gas-pump"></i>
+
+                                    Energy
+
+                                </span>
+
+                                <strong id="resultEnergy">
+                                    —
+                                </strong>
+
+                            </div>
+
+
+                            <div class="detail-row">
+
+                                <span>
+
+                                    <i class="fa-solid fa-route"></i>
+
+                                    Distance
+
+                                </span>
+
+                                <strong>
+
+                                    <span id="resultDistance">
+                                        —
+                                    </span>
+
+                                    km
+
+                                </strong>
+
+                            </div>
+
+
+                            <div class="detail-row">
+
+                                <span>
+
+                                    <i class="fa-solid fa-users"></i>
+
+                                    Seating
+
+                                </span>
+
+                                <strong id="resultSeats">
+                                    —
+                                </strong>
+
+                            </div>
+
+
+                            <div class="detail-row">
+
+                                <span>
+
+                                    <i class="fa-solid fa-car"></i>
+
+                                    Vehicle
+
+                                </span>
+
+                                <strong id="resultVehicle">
+                                    —
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- FARE BREAKDOWN -->
+
+                        <div
+                            class="fare-breakdown"
+                            id="fareBreakdown"
+                        >
+
+                            <div class="breakdown-title">
+
+                                <i class="fa-solid fa-list-check"></i>
+
+                                Fare breakdown
+
+                            </div>
+
+
+                            <div class="breakdown-row">
+
+                                <span>
+                                    Minimum fare
+                                </span>
+
+                                <strong>
+                                    ₹<span id="minimumFare">
+                                        0.00
+                                    </span>
+                                </strong>
+
+                            </div>
+
+
+                            <div class="breakdown-row">
+
+                                <span>
+
+                                    Additional distance
+
+                                </span>
+
+                                <strong>
+
+                                    <span id="additionalDistance">
+                                        0.00
+                                    </span>
+
+                                    km
+
+                                </strong>
+
+                            </div>
+
+
+                            <div class="breakdown-row">
+
+                                <span>
+                                    Additional fare
+                                </span>
+
+                                <strong>
+
+                                    ₹<span id="additionalFare">
+                                        0.00
+                                    </span>
+
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- SLAB BREAKDOWN -->
+
+                        <div
+                            class="slab-section"
+                            id="slabSection"
+                        >
+
+                            <div class="breakdown-title">
+
+                                <i class="fa-solid fa-layer-group"></i>
+
+                                Rate slabs
+
+                            </div>
+
+
+                            <div
+                                id="slabBreakdown"
+                                class="slab-breakdown"
+                            >
+                            </div>
+
+                        </div>
+
+
+                        <!-- GOVERNMENT RULE -->
+
+                        <div class="fare-rule-note">
+
+                            <i class="fa-solid fa-shield-halved"></i>
+
+                            <div>
+
+                                <strong>
+                                    Transparent calculation
+                                </strong>
+
+                                <p id="fareRuleNote">
+
+                                    Calculated using the applicable
+                                    fare rule available in the system.
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- RESET -->
+
+                        <button
+                            class="reset-btn"
+                            id="resetBtn"
+                            type="button"
+                        >
+
+                            <i class="fa-solid fa-rotate-left"></i>
+
+                            Calculate another journey
+
+                        </button>
+
+                    </div>
+
+
+                    <!-- ERROR -->
+
+                    <div
+                        class="result-error"
+                        id="resultError"
+                    >
+
+                        <div class="error-icon">
+
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+
+                        </div>
+
+
+                        <h3>
+                            We couldn't calculate the fare
+                        </h3>
+
+
+                        <p id="errorMessage">
+
+                            Something went wrong.
+                            Please try again.
+
+                        </p>
+
+
+                        <button
+                            class="retry-btn"
+                            id="retryBtn"
+                            type="button"
+                        >
+
+                            Try again
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         HOW IT WORKS
+    ================================================== -->
+
+    <section
+        class="how-section section"
+        id="how-it-works"
+    >
+
+        <div class="container">
+
+            <div class="section-heading centered">
+
+                <div class="eyebrow">
+
+                    <span class="eyebrow-dot"></span>
+
+                    Simple by design
+
+                </div>
+
+
+                <h2>
+                    How Fare Keralam works
+                </h2>
+
+
+                <p>
+
+                    We want fare calculation to be understandable
+                    for both passengers and drivers.
+
+                </p>
+
+            </div>
+
+
+            <div class="process-grid">
+
+
+                <div class="process-card">
+
+                    <div class="process-number">
+                        01
+                    </div>
+
+                    <div class="process-icon">
+
+                        <i class="fa-solid fa-car"></i>
+
+                    </div>
+
+                    <h3>
+                        Choose your vehicle
+                    </h3>
+
+                    <p>
+
+                        Select the appropriate vehicle category,
+                        energy source and seating details.
+
+                    </p>
+
+                </div>
+
+
+                <div class="process-connector">
+
+                    <i class="fa-solid fa-arrow-right"></i>
+
+                </div>
+
+
+                <div class="process-card">
+
+                    <div class="process-number">
+                        02
+                    </div>
+
+                    <div class="process-icon">
+
+                        <i class="fa-solid fa-route"></i>
+
+                    </div>
+
+                    <h3>
+                        Enter your distance
+                    </h3>
+
+                    <p>
+
+                        Tell us how far your journey is in
+                        kilometres.
+
+                    </p>
+
+                </div>
+
+
+                <div class="process-connector">
+
+                    <i class="fa-solid fa-arrow-right"></i>
+
+                </div>
+
+
+                <div class="process-card">
+
+                    <div class="process-number">
+                        03
+                    </div>
+
+                    <div class="process-icon">
+
+                        <i class="fa-solid fa-indian-rupee-sign"></i>
+
+                    </div>
+
+                    <h3>
+                        Get your fare
+                    </h3>
+
+                    <p>
+
+                        The backend applies the relevant fare
+                        rule and returns the calculated amount.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         PRINCIPLES
+    ================================================== -->
+
+    <section class="principles-section section">
+
+        <div class="container">
+
+            <div class="principles-grid">
+
+
+                <div class="principles-content">
+
+                    <div class="eyebrow dark">
+
+                        <span class="eyebrow-dot"></span>
+
+                        Our approach
+
+                    </div>
+
+
+                    <h2>
+
+                        Fair for passengers.
+                        Sustainable for drivers.
+
+                    </h2>
+
+
+                    <p>
+
+                        Fare Keralam is being designed around
+                        a simple principle: fare systems should be
+                        transparent and predictable without making
+                        everyday travel unnecessarily expensive.
+
+                    </p>
+
+
+                    <p>
+
+                        The platform is built so that government
+                        fare rules can form the foundation while
+                        future cost and fuel data can be incorporated
+                        in a structured and responsible way.
+
+                    </p>
+
+
+                    <a
+                        href="#calculator"
+                        class="text-link"
+                    >
+
+                        Try the calculator
+
+                        <i class="fa-solid fa-arrow-right"></i>
+
+                    </a>
+
+                </div>
+
+
+                <div class="principles-cards">
+
+
+                    <div class="principle-card">
+
+                        <div class="principle-icon">
+
+                            <i class="fa-solid fa-eye"></i>
+
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Transparency
+                            </h3>
+
+                            <p>
+
+                                Users should be able to understand
+                                where a fare comes from.
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="principle-card">
+
+                        <div class="principle-icon">
+
+                            <i class="fa-solid fa-scale-balanced"></i>
+
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Balance
+                            </h3>
+
+                            <p>
+
+                                Passenger affordability and driver
+                                sustainability both matter.
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="principle-card">
+
+                        <div class="principle-icon">
+
+                            <i class="fa-solid fa-database"></i>
+
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                Data driven
+                            </h3>
+
+                            <p>
+
+                                Fare calculations can be connected
+                                to structured data and rules.
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         ABOUT
+    ================================================== -->
+
+    <section
+        class="about-section section"
+        id="about"
+    >
+
+        <div class="container">
+
+            <div class="about-card">
+
+                <div class="about-decoration"></div>
+
+
+                <div class="about-content">
+
+                    <div class="eyebrow">
+
+                        <span class="eyebrow-dot"></span>
+
+                        About Fare Keralam
+
+                    </div>
+
+
+                    <h2>
+
+                        Building a smarter way to
+                        understand Kerala's fares.
+
+                    </h2>
+
+
+                    <p>
+
+                        Fare Keralam is a technology project focused
+                        on making passenger transport fare information
+                        easier to access, understand and calculate.
+
+                    </p>
+
+
+                    <div class="about-tags">
+
+                        <span>
+
+                            <i class="fa-solid fa-location-dot"></i>
+
+                            Kerala
+
+                        </span>
+
+
+                        <span>
+
+                            <i class="fa-solid fa-code"></i>
+
+                            Technology
+
+                        </span>
+
+
+                        <span>
+
+                            <i class="fa-solid fa-users"></i>
+
+                            Public focused
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="about-side">
+
+                    <div class="about-logo-large">
+                        F
+                    </div>
+
+                    <span>
+                        FARE KERALAM
+                    </span>
+
+                    <small>
+                        Transparent mobility information
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         CTA
+    ================================================== -->
+
+    <section class="cta-section">
+
+        <div class="container">
+
+            <div class="cta-card">
+
+                <div class="cta-glow"></div>
+
+
+                <div class="cta-content">
+
+                    <span class="cta-label">
+                        Ready to check your fare?
+                    </span>
+
+
+                    <h2>
+
+                        Know the fare before
+                        you start your journey.
+
+                    </h2>
+
+
+                    <p>
+                        Try the Fare Keralam calculator.
+                    </p>
+
+                </div>
+
+
+                <a
+                    href="#calculator"
+                    class="btn btn-light"
+                >
+
+                    Calculate Fare
+
+                    <i class="fa-solid fa-arrow-right"></i>
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- =====================================================
+     FOOTER
+====================================================== -->
+
+<footer class="site-footer">
+
+    <div class="container">
+
+        <div class="footer-grid">
+
+
+            <div class="footer-brand">
+
+                <a
+                    href="#home"
+                    class="brand"
+                >
+
+                    <div class="brand-mark">
+                        <span>F</span>
+                    </div>
+
+                    <div class="brand-text">
+
+                        <strong>Fare</strong>
+
+                        <span>Keralam</span>
+
+                    </div>
+
+                </a>
+
+
+                <p>
+
+                    Making Kerala passenger fares easier
+                    to understand.
+
+                </p>
+
+            </div>
+
+
+            <div class="footer-column">
+
+                <h4>
+                    Explore
+                </h4>
+
+                <a href="#home">
+                    Home
+                </a>
+
+                <a href="#calculator">
+                    Fare Calculator
+                </a>
+
+                <a href="#how-it-works">
+                    How It Works
+                </a>
+
+                <a href="#about">
+                    About
+                </a>
+
+            </div>
+
+
+            <div class="footer-column">
+
+                <h4>
+                    Platform
+                </h4>
+
+                <a href="#calculator">
+                    Auto Rickshaw
+                </a>
+
+                <a href="#calculator">
+                    Motor Cab
+                </a>
+
+                <a href="#calculator">
+                    Maxicab
+                </a>
+
+                <a href="#calculator">
+                    Passenger Vehicles
+                </a>
+
+            </div>
+
+
+            <div class="footer-column">
+
+                <h4>
+                    Status
+                </h4>
+
+
+                <div class="footer-status">
+
+                    <span
+                        class="status-dot"
+                        id="footerStatusDot"
+                    ></span>
+
+                    <span id="footerStatus">
+                        Checking API...
+                    </span>
+
+                </div>
+
+
+                <p class="footer-version">
+                    Fare Keralam API v1.3.0
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="footer-bottom">
+
+            <p>
+
+                ©
+                <span id="currentYear"></span>
+
+                Fare Keralam.
+                Built for Kerala.
+
+            </p>
+
+
+            <div class="footer-bottom-right">
+
+                <span>
+                    Passenger-first
+                </span>
+
+                <span>
+                    •
+                </span>
+
+                <span>
+                    Transparent
+                </span>
+
+                <span>
+                    •
+                </span>
+
+                <span>
+                    Data-driven
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</footer>
+
+
+<!-- =====================================================
+     TOAST
+====================================================== -->
+
+<div
+    class="toast"
+    id="toast"
+>
+
+    <i class="fa-solid fa-circle-check"></i>
+
+    <span id="toastMessage">
+        Done
+    </span>
+
+</div>
+
+
+<!-- =====================================================
+     MAIN JAVASCRIPT
+====================================================== -->
+
+<script src="script.js?v=20260828-5"></script>
+
+</body>
+</html>
