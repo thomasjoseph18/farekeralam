@@ -13,7 +13,9 @@ import psycopg2.extras
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, ConfigDict
+
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -135,9 +137,34 @@ def common_fuel_for_category(category: str) -> Optional[str]:
     return COMMON_FUEL_BY_CATEGORY.get(category)
 
 
-@app.get("/")
+
+# Root of this file is backend/main.py  →  repo root is one level up.
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+@app.get("/", include_in_schema=False)
 def root():
+    index_path = os.path.join(_REPO_ROOT, "index.html")
+    if os.path.isfile(index_path):
+        return FileResponse(index_path, media_type="text/html")
+    # Fallback for environments where the frontend files aren't present.
     return {"success": True, "name": "Fare Keralam API", "version": app.version, "status": "online"}
+
+
+@app.get("/style.css", include_in_schema=False)
+def serve_css():
+    css_path = os.path.join(_REPO_ROOT, "style.css")
+    if os.path.isfile(css_path):
+        return FileResponse(css_path, media_type="text/css")
+    raise HTTPException(status_code=404, detail="style.css not found")
+
+
+@app.get("/script.js", include_in_schema=False)
+def serve_js():
+    js_path = os.path.join(_REPO_ROOT, "script.js")
+    if os.path.isfile(js_path):
+        return FileResponse(js_path, media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="script.js not found")
 
 
 @app.get("/api/health")
