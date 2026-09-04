@@ -1,9 +1,11 @@
-name: Restore root frontend and build government fare hierarchy
+name: Restore root frontend and build government fare hierarchy (DISABLED)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
+    inputs:
+      confirm:
+        description: "Type ENABLE to run this workflow manually"
+        required: true
 
 permissions:
   contents: write

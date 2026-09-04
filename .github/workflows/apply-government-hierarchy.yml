@@ -1,8 +1,10 @@
-name: Apply government fare hierarchy
+name: Apply government fare hierarchy (DISABLED - superseded by direct commits)
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type ENABLE to run this workflow manually"
+        required: true
 permissions:
   contents: write
 jobs:
