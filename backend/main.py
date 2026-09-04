@@ -206,21 +206,86 @@ def get_categories():
 
 @app.get("/api/government-classification")
 def get_government_classification():
+    """
+    Returns the full government vehicle hierarchy in a single database
+    connection using one query per level. Avoids N+1 connection overhead
+    that caused timeouts on Render free tier.
+    """
     try:
-        classes=fetch_all("SELECT id,name,description,display_order FROM government_vehicle_classes WHERE active=TRUE ORDER BY display_order,id")
-        for cls in classes:
-            subs=fetch_all("SELECT id,name,description,display_order FROM government_vehicle_subclasses WHERE class_id=%s AND active=TRUE ORDER BY display_order,id",(cls["id"],))
-            for sub in subs:
-                configs=fetch_all("SELECT id,name,description,display_order FROM government_vehicle_configurations WHERE subclass_id=%s AND active=TRUE ORDER BY display_order,id",(sub["id"],))
-                for cfg in configs:
-                    cfg["vehicle_categories"]=fetch_all("SELECT vc.id,vc.name,vc.description FROM government_vehicle_category_map m JOIN vehicle_categories vc ON vc.id=m.vehicle_category_id WHERE m.configuration_id=%s AND m.active=TRUE ORDER BY vc.id",(cfg["id"],))
-                sub["configurations"]=configs
-                sub["vehicle_categories"]=fetch_all("SELECT vc.id,vc.name,vc.description FROM government_vehicle_category_map m JOIN vehicle_categories vc ON vc.id=m.vehicle_category_id WHERE m.subclass_id=%s AND m.active=TRUE ORDER BY vc.id",(sub["id"],))
-            cls["subclasses"]=subs
-        return {"success":True,"classes":classes}
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                # All four datasets in one connection — four fast queries
+                cur.execute("""
+                    SELECT id, name, description, display_order
+                    FROM government_vehicle_classes
+                    WHERE active = TRUE
+                    ORDER BY display_order, id
+                """)
+                classes_raw = [dict(r) for r in cur.fetchall()]
+
+                cur.execute("""
+                    SELECT id, class_id, name, description, display_order
+                    FROM government_vehicle_subclasses
+                    WHERE active = TRUE
+                    ORDER BY display_order, id
+                """)
+                subs_raw = [dict(r) for r in cur.fetchall()]
+
+                cur.execute("""
+                    SELECT id, subclass_id, name, description, display_order
+                    FROM government_vehicle_configurations
+                    WHERE active = TRUE
+                    ORDER BY display_order, id
+                """)
+                cfgs_raw = [dict(r) for r in cur.fetchall()]
+
+                cur.execute("""
+                    SELECT m.subclass_id, m.configuration_id,
+                           vc.id AS vc_id, vc.name AS vc_name, vc.description AS vc_description
+                    FROM government_vehicle_category_map m
+                    JOIN vehicle_categories vc ON vc.id = m.vehicle_category_id
+                    WHERE m.active = TRUE
+                    ORDER BY vc.id
+                """)
+                maps_raw = [dict(r) for r in cur.fetchall()]
+        finally:
+            conn.close()
+
+        # Build lookup maps in Python — zero extra DB calls
+        sub_cats = {}   # subclass_id  → [category]
+        cfg_cats = {}   # config_id    → [category]
+        for m in maps_raw:
+            cat = {"id": m["vc_id"], "name": m["vc_name"], "description": m["vc_description"]}
+            if m["configuration_id"] is not None:
+                cfg_cats.setdefault(m["configuration_id"], []).append(cat)
+            elif m["subclass_id"] is not None:
+                sub_cats.setdefault(m["subclass_id"], []).append(cat)
+
+        cfgs_by_sub = {}
+        for cfg in cfgs_raw:
+            cfg["vehicle_categories"] = cfg_cats.get(cfg["id"], [])
+            cfgs_by_sub.setdefault(cfg["subclass_id"], []).append(cfg)
+
+        subs_by_class = {}
+        for sub in subs_raw:
+            sub["configurations"] = cfgs_by_sub.get(sub["id"], [])
+            sub["vehicle_categories"] = sub_cats.get(sub["id"], [])
+            subs_by_class.setdefault(sub["class_id"], []).append(sub)
+
+        for cls in classes_raw:
+            cls["subclasses"] = subs_by_class.get(cls["id"], [])
+
+        return {"success": True, "classes": classes_raw}
+
+    except HTTPException:
+        raise
     except Exception as exc:
-        print("Government classification error:",exc)
-        raise HTTPException(status_code=503,detail="Government classification is not initialized. Run the database migration.")
+        print("Government classification error:", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Government classification unavailable. Ensure the database migration has been applied."
+        )
 
 @app.get("/api/energy-sources")
 def get_energy_sources():
