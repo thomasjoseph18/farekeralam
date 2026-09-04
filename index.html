@@ -43,7 +43,7 @@
      MAIN CSS
 ====================================================== -->
 
-<link rel="stylesheet" href="style.css?v=20260828-8">
+<link rel="stylesheet" href="style.css?v=20260828-5">
 
 </head><body><!-- =====================================================
      PAGE LOADER
@@ -380,7 +380,11 @@
 
                         <span>
 
-                            
+                            <i class="fa-solid fa-gas-pump"></i>
+
+                            <span id="heroEnergy">
+                                Petrol
+                            </span>
 
                         </span>
 
@@ -483,6 +487,77 @@
 
             </div>
 
+
+            <div class="stat-box">
+
+                <div class="stat-box-icon">
+
+                    <i class="fa-solid fa-bolt"></i>
+
+                </div>
+
+                <div>
+
+                    <strong id="energyCount">
+                        —
+                    </strong>
+
+                    <span>
+                        Energy sources
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-box">
+
+                <div class="stat-box-icon">
+
+                    <i class="fa-solid fa-car-side"></i>
+
+                </div>
+
+                <div>
+
+                    <strong id="vehicleCountStat">
+                        —
+                    </strong>
+
+                    <span>
+                        Vehicle options
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-box">
+
+                <div class="stat-box-icon">
+
+                    <i class="fa-solid fa-scale-balanced"></i>
+
+                </div>
+
+                <div>
+
+                    <strong>
+                        Fair
+                    </strong>
+
+                    <span>
+                        Passenger-first approach
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </section>
 
 
@@ -565,20 +640,37 @@
                         <!-- CATEGORY -->
 
                         <div class="form-group">
-<label for="governmentClass">Government vehicle class</label>
-<div class="select-wrapper"><i class="fa-solid fa-layer-group select-icon"></i><select id="governmentClass" required><option value="">Loading classifications...</option></select><i class="fa-solid fa-chevron-down select-arrow"></i></div>
-</div>
-<div class="form-group" id="governmentSubclassGroup" style="display:none"><label for="governmentSubclass">Government subclass</label><div class="select-wrapper"><i class="fa-solid fa-list select-icon"></i><select id="governmentSubclass"><option value="">Select subclass</option></select><i class="fa-solid fa-chevron-down select-arrow"></i></div></div>
-<div class="form-group" id="governmentConfigurationGroup" style="display:none"><label for="governmentConfiguration">Vehicle configuration</label><div class="select-wrapper"><i class="fa-solid fa-bus select-icon"></i><select id="governmentConfiguration"><option value="">Select configuration</option></select><i class="fa-solid fa-chevron-down select-arrow"></i></div></div>
-<input type="hidden" id="category" name="category" value="">
+
+                            <label for="category">
+                                Vehicle category
+                            </label>
+
+                            <div class="select-wrapper">
+
+                                <i class="fa-solid fa-car-side select-icon"></i>
+
+                                <select
+                                    id="category"
+                                    name="category"
+                                    required
+                                >
+
+                                    <option value="">
+                                        Loading categories...
+                                    </option>
+
+                                </select>
+
+                                <i class="fa-solid fa-chevron-down select-arrow"></i>
+
+                            </div>
+
+                        </div>
 
 
                         <!-- ENERGY + SEATING -->
 
-                        <div class="form-row">
-
-
-                            <!-- SEATING -->
+                        <!-- SEATING -->
 
                             <div
                                 class="form-group"
@@ -610,6 +702,7 @@
 
                             </div>
 
+                        </div>
 
 
                         <!-- VEHICLE -->
@@ -860,6 +953,23 @@
                                 </span>
 
                                 <strong id="resultCategory">
+                                    —
+                                </strong>
+
+                            </div>
+
+
+                            <div class="detail-row">
+
+                                <span>
+
+                                    <i class="fa-solid fa-gas-pump"></i>
+
+                                    Energy
+
+                                </span>
+
+                                <strong id="resultEnergy">
                                     —
                                 </strong>
 
@@ -1168,8 +1278,8 @@
 
                     <p>
 
-                        Select the applicable government vehicle class, subclass
-                        and vehicle configuration.
+                        Select the appropriate vehicle category,
+                        energy source and seating details.
 
                     </p>
 
@@ -1745,7 +1855,7 @@
      MAIN JAVASCRIPT
 ====================================================== -->
 
-<script src="script.js?v=20260828-8"></script>
+<script src="script.js?v=20260828-5"></script>
 
 </body>
 </html>
