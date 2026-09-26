@@ -1310,42 +1310,33 @@ Government data should always be verified against the latest applicable notifica
 
 
 
-The frontend can be deployed on:
+The current deployment design serves the frontend and FastAPI backend from one Render web service. GitHub Pages remains available as a static frontend fallback.
 
+### Render service settings
 
+Configure the service from the repository root so the backend can read the root `index.html`, `style.css` and `script.js` files.
 
+- Build command: `pip install -r backend/requirements.txt`
+- Start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+- Environment variable: `DATABASE_URL` set to the PostgreSQL connection string copied from Supabase’s Connect dialog. On Render, use the Session pooler URL on port `5432`; preserve the exact pooler host and project-qualified username Supabase provides. Do not guess the `aws-N` host from the region. A `tenant/user not found` error usually means the host or username does not match the project.
 
+The Render root URL serves the calculator. API endpoints remain under `/api/`, and the interactive API documentation is available at `/docs`.
 
-GitHub Pages
+### Database setup
 
+In the Supabase SQL Editor, apply `database/schema.sql` first, then `database/migrations/002_government_vehicle_classification.sql`. Add active fare rules and slabs only from verified sources. The backend reads `DATABASE_URL`; `SUPABASE_URL` and `SUPABASE_KEY` are not used by this application.
 
+For local development, copy `backend/.env.example` to `backend/.env`. The backend loads that file relative to `backend/main.py`, so the start command works from either the repository root or the `backend` directory. Keep `.env` private and use the Render environment settings for production.
 
-Netlify
+### GitHub Pages fallback
 
+The Pages workflow publishes only the root frontend files. Its frontend calls the Render API, while the Render-hosted frontend uses same-origin `/api` requests. A local preview on ports 3000 or 5500 also calls the Render API.
 
+### Current feature limits
 
-Vercel
+The passenger interface uses the government vehicle hierarchy and does not ask passengers to choose fuel. A hierarchy entry can be calculated only when it maps to an operational category. Database-backed fares are shown when an active, effective fare rule exists. Otherwise, the API labels its configured fallback as an estimate; it is not an official fare.
 
-
-
-Cloudflare Pages
-
-
-
-Any standard static hosting provider
-
-
-
-
-
-
-
-For automatic data updates, a backend/database and scheduled server-side jobs are recommended.
-
-
-
-
-
+The full verified fare database, operating-cost recommendation engine, admin dashboard, source-monitoring automation and update-verification workflow remain future work. Do not describe an estimate or an unverified value as a government fare.
 
 
 🛠️ Development Roadmap
