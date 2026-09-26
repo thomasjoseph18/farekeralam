@@ -1,4 +1,4 @@
-const API_BASE=window.location.hostname==="thomasjoseph18.github.io"?"https://farekeralam.onrender.com/api":"/api";
+const useRenderApi=window.location.hostname==="thomasjoseph18.github.io"||window.location.protocol==="file:"||(["localhost","127.0.0.1"].includes(window.location.hostname)&&["3000","5500"].includes(window.location.port));const API_BASE=useRenderApi?"https://farekeralam.onrender.com/api":"/api";
 const API={health:`${API_BASE}/health`,classification:`${API_BASE}/government-classification`,vehicles:`${API_BASE}/vehicles`,calculate:`${API_BASE}/fare/calculate`};
 const $=id=>document.getElementById(id);
 const state={classes:[],categories:[],vehicles:[],loading:false};
