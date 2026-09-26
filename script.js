@@ -1,26 +1,306 @@
-const useRenderApi=window.location.hostname==="thomasjoseph18.github.io"||window.location.protocol==="file:"||(["localhost","127.0.0.1"].includes(window.location.hostname)&&["3000","5500"].includes(window.location.port));const API_BASE=useRenderApi?"https://farekeralam.onrender.com/api":"/api";
-const API={health:`${API_BASE}/health`,classification:`${API_BASE}/government-classification`,vehicles:`${API_BASE}/vehicles`,calculate:`${API_BASE}/fare/calculate`};
-const $=id=>document.getElementById(id);
-const state={classes:[],categories:[],vehicles:[],loading:false};
-const bool=v=>v===true||v===1||v==="1"||v==="true"||v==="TRUE";
-const show=(e,on)=>{if(e)e.style.display=on?"":"none"};
-const fmt=v=>{const n=Number(v);return Number.isFinite(n)?n.toFixed(2):"0.00"};
-const placeholder=(s,t)=>{s.innerHTML="";const o=document.createElement("option");o.value="";o.textContent=t;o.disabled=true;o.selected=true;s.appendChild(o)};
-async function api(url,opt={}){const r=await fetch(url,{...opt,mode:"cors",headers:{Accept:"application/json",...(opt.body?{"Content-Type":"application/json"}:{})}});const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(_){}if(!r.ok)throw Error(typeof d?.detail==="string"?d.detail:`API error ${r.status}`);return d}
-function cls(){return state.classes.find(x=>Number(x.id)===Number($("governmentClass")?.value))}
-function sub(){return cls()?.subclasses?.find(x=>Number(x.id)===Number($("governmentSubclass")?.value))}
-function cfg(){return sub()?.configurations?.find(x=>Number(x.id)===Number($("governmentConfiguration")?.value))}
-function mapped(){return cfg()?.vehicle_categories?.[0]||sub()?.vehicle_categories?.[0]||null}
-function populateClasses(){const s=$("governmentClass");if(!s)return;placeholder(s,"Select government class");state.classes.forEach(x=>{const o=document.createElement("option");o.value=x.id;o.textContent=x.name;s.appendChild(o)})}
-function populateSubclasses(){const c=cls(),s=$("governmentSubclass");if(!s)return;placeholder(s,"Select government subclass");(c?.subclasses||[]).forEach(x=>{const o=document.createElement("option");o.value=x.id;o.textContent=x.name;s.appendChild(o)});show($("governmentSubclassGroup"),!!c);show($("governmentConfigurationGroup"),false);$("category").value="";updateOperational()}
-function populateConfigurations(){const x=sub(),s=$("governmentConfiguration");if(!s)return;placeholder(s,"Select vehicle configuration");(x?.configurations||[]).forEach(v=>{const o=document.createElement("option");o.value=v.id;o.textContent=v.name;s.appendChild(o)});show($("governmentConfigurationGroup"),!!x?.configurations?.length);updateOperational()}
-function updateOperational(){const m=mapped();$("category").value=m?.name||"";updateRequirements();populateVehicles()}
-function updateRequirements(){const c=state.categories.find(x=>x.name===$("category").value),need=!!c&&bool(c.requires_seating_capacity);show($("seatingGroup"),need);show($("vehicleGroup"),!!c&&bool(c.requires_model));$("seating").required=need;const s=$("seating");placeholder(s,"Select seats");if(need){[...new Set(state.vehicles.filter(v=>Number(v.category_id)===Number(c.id)).map(v=>v.seating_capacity).filter(v=>v!=null))].sort((a,b)=>a-b).forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=`${v} seats`;s.appendChild(o)})}}
-function populateVehicles(){const s=$("vehicle");if(!s)return;const c=state.categories.find(x=>x.name===$("category").value),seat=Number($("seating")?.value)||null;let list=state.vehicles;if(c)list=list.filter(v=>Number(v.category_id)===Number(c.id));if(seat)list=list.filter(v=>v.seating_capacity==null||Number(v.seating_capacity)===seat);placeholder(s,list.length?"Select vehicle model":"No matching vehicle");list.forEach(v=>{const o=document.createElement("option");o.value=v.id;o.textContent=v.seating_capacity!=null?`${v.name} — ${v.seating_capacity} seats`:v.name;s.appendChild(o)})}
-function empty(){show($("resultEmpty"),true);show($("resultSuccess"),false);show($("resultError"),false)}
-function err(m){if($("errorMessage"))$("errorMessage").textContent=m;show($("resultEmpty"),false);show($("resultSuccess"),false);show($("resultError"),true)}
-function display(c){$("fareAmount").textContent=fmt(c.fare);$("resultCategory").textContent=c.category||"—";$("resultDistance").textContent=fmt(c.distance_km);$("resultSeats").textContent=c.seating_capacity!=null?`${c.seating_capacity} seats`:"—";$("resultVehicle").textContent=c.vehicle?.name||c.category||"—";$("calculationMethod").textContent=c.calculation_method==="database_fare_rule"?"Government fare rule":c.calculation_method||"—";$("minimumFare").textContent=fmt(c.minimum_fare);$("additionalDistance").textContent=fmt(c.additional_distance_km);$("additionalFare").textContent=fmt(c.additional_fare);$("fareRuleNote").textContent=c.fare_source==="database"?`Calculated from the database fare rule. ${c.government_reference||""}`:"This is a fallback estimate and is not an official fare.";$("heroVehicle").textContent=c.vehicle?.name||c.category||"—";$("heroDistance").textContent=`${fmt(c.distance_km)} km`;$("heroFare").textContent=`₹${fmt(c.fare)}`;if($("heroEnergy"))$("heroEnergy").textContent=c.government_reference||"Govt. fare rule";const b=$("slabBreakdown");b.innerHTML="";(c.slab_breakdown||[]).forEach(x=>{const d=document.createElement("div");d.className="slab-row";d.innerHTML=`<span>${fmt(x.from_km)}–${fmt(x.to_km)} km</span><strong>₹${fmt(x.amount)} <small>(${fmt(x.rate_per_km)}/km)</small></strong>`;b.appendChild(d)});show($("slabSection"),!!c.slab_breakdown?.length);show($("resultEmpty"),false);show($("resultSuccess"),true);show($("resultError"),false)}
-async function calculate(){if(state.loading)return;const c=state.categories.find(x=>x.name===$("category").value),d=Number($("distance").value),seat=Number($("seating").value)||null,vid=Number($("vehicle").value)||null;if(!c)return err("Please select a government classification that has a Fare Keralam fare category.");if(!Number.isFinite(d)||d<=0)return err("Please enter a valid journey distance.");if(bool(c.requires_seating_capacity)&&!seat)return err("Please select the seating capacity.");const body={category:c.name,distance_km:d};if(seat)body.seating_capacity=seat;if(vid)body.vehicle_id=vid;state.loading=true;$("calculateBtn").disabled=true;try{const r=await api(API.calculate,{method:"POST",body:JSON.stringify(body)});if(!r?.success||!r.calculation)throw Error("Invalid fare calculation response");display(r.calculation)}catch(e){console.error(e);err(e.message||"Unable to calculate fare.")}finally{state.loading=false;$("calculateBtn").disabled=false}}
-async function loadClassification(attempt){if(!attempt)attempt=1;try{const g=await api(API.classification);state.classes=g?.classes||[];populateClasses();const st=$("classStatus");if(st)st.style.display="none"}catch(e){console.warn("Classification attempt "+attempt+" failed:",e.message);const st=$("classStatus");if(attempt<3){if(st)st.textContent="Loading classifications… (retrying)";setTimeout(()=>loadClassification(attempt+1),4000)}else{if(st)st.textContent="Classification unavailable — refresh to retry"}}}
-async function init(){const l=$("pageLoader");if($("currentYear"))$("currentYear").textContent=new Date().getFullYear();empty();try{const[h,c,v]=await Promise.all([api(API.health),api(`${API_BASE}/categories`),api(API.vehicles)]);state.categories=c?.categories||[];state.vehicles=v?.vehicles||[];$("categoryCount").textContent=state.categories.length;$("vehicleCount").textContent=state.vehicles.length;$("vehicleCountStat").textContent=state.vehicles.length;$("footerStatus").textContent=h?.status==="healthy"?"API online":"API unavailable";$("heroApiStatus").classList.toggle("online",h?.status==="healthy")}catch(e){console.error(e);$("footerStatus").textContent="API connection problem"}finally{if(l){l.classList.add("hidden");setTimeout(()=>l.remove(),500)}}loadClassification(1)}
-document.addEventListener("DOMContentLoaded",()=>{$("fareForm")?.addEventListener("submit",e=>{e.preventDefault();calculate()});$("governmentClass")?.addEventListener("change",populateSubclasses);$("governmentSubclass")?.addEventListener("change",populateConfigurations);$("governmentConfiguration")?.addEventListener("change",updateOperational);$("seating")?.addEventListener("change",populateVehicles);$("resetBtn")?.addEventListener("click",()=>{$("fareForm")?.reset();empty();show($("governmentSubclassGroup"),false);show($("governmentConfigurationGroup"),false)});$("retryBtn")?.addEventListener("click",calculate);$("mobileMenuBtn")?.addEventListener("click",()=>$("mainNav")?.classList.toggle("open"));init()});
+const useRenderApi = window.location.hostname === "thomasjoseph18.github.io" || window.location.protocol === "file:" || (["localhost", "127.0.0.1"].includes(window.location.hostname) && ["3000", "5500"].includes(window.location.port));
+const API_BASE = useRenderApi ? "https://farekeralam.onrender.com/api" : "/api";
+const API = {
+  health: `${API_BASE}/health`,
+  classification: `${API_BASE}/government-classification`,
+  vehicles: `${API_BASE}/vehicles`,
+  calculate: `${API_BASE}/fare/calculate`
+};
+const $ = (id) => document.getElementById(id);
+const state = { classes: [], categories: [], vehicles: [], loading: false };
+const bool = (value) => value === true || value === 1 || value === "1" || value === "true" || value === "TRUE";
+const show = (element, visible) => { if (element) element.style.display = visible ? "" : "none"; };
+const setText = (id, value) => { const element = $(id); if (element) element.textContent = value; };
+const fmt = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toFixed(2) : "0.00";
+};
+
+function setPlaceholder(select, label) {
+  if (!select) return;
+  select.replaceChildren();
+  const option = document.createElement("option");
+  option.value = "";
+  option.textContent = label;
+  option.disabled = true;
+  option.selected = true;
+  select.appendChild(option);
+}
+
+async function api(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    mode: "cors",
+    headers: {
+      Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {})
+    }
+  });
+  const text = await response.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) { /* Keep non-JSON responses readable below. */ }
+  if (!response.ok) {
+    throw new Error(typeof data?.detail === "string" ? data.detail : `API error ${response.status}`);
+  }
+  return data;
+}
+
+function selectedClass() {
+  return state.classes.find((item) => Number(item.id) === Number($("governmentClass")?.value));
+}
+function selectedSubclass() {
+  return selectedClass()?.subclasses?.find((item) => Number(item.id) === Number($("governmentSubclass")?.value));
+}
+function selectedConfiguration() {
+  return selectedSubclass()?.configurations?.find((item) => Number(item.id) === Number($("governmentConfiguration")?.value));
+}
+function mappedCategory() {
+  return selectedConfiguration()?.vehicle_categories?.[0] || selectedSubclass()?.vehicle_categories?.[0] || null;
+}
+
+function populateClasses() {
+  const select = $("governmentClass");
+  if (!select) return;
+  setPlaceholder(select, "Select vehicle category");
+  state.classes.forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.name;
+    select.appendChild(option);
+  });
+  select.disabled = state.classes.length === 0;
+}
+
+function populateSubclasses() {
+  const classification = selectedClass();
+  const select = $("governmentSubclass");
+  setPlaceholder(select, "Select a vehicle type");
+  (classification?.subclasses || []).forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.name;
+    select.appendChild(option);
+  });
+  show($("governmentSubclassGroup"), Boolean(classification));
+  show($("governmentConfigurationGroup"), false);
+  setText("category", "");
+  updateOperational();
+}
+
+function populateConfigurations() {
+  const subclass = selectedSubclass();
+  const select = $("governmentConfiguration");
+  setPlaceholder(select, "Select a configuration");
+  (subclass?.configurations || []).forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.name;
+    select.appendChild(option);
+  });
+  show($("governmentConfigurationGroup"), Boolean(subclass?.configurations?.length));
+  updateOperational();
+}
+
+function updateOperational() {
+  const category = mappedCategory();
+  setText("category", category?.name || "");
+  updateRequirements();
+  populateVehicles();
+}
+
+function updateRequirements() {
+  const category = state.categories.find((item) => item.name === $("category")?.value);
+  const needsSeats = Boolean(category && bool(category.requires_seating_capacity));
+  show($("seatingGroup"), needsSeats);
+  show($("vehicleGroup"), Boolean(category && bool(category.requires_model)));
+  const seating = $("seating");
+  if (seating) {
+    seating.required = needsSeats;
+    setPlaceholder(seating, "Select seats");
+    if (needsSeats) {
+      const capacities = [...new Set(state.vehicles
+        .filter((vehicle) => Number(vehicle.category_id) === Number(category.id))
+        .map((vehicle) => vehicle.seating_capacity)
+        .filter((value) => value != null))].sort((a, b) => a - b);
+      capacities.forEach((capacity) => {
+        const option = document.createElement("option");
+        option.value = capacity;
+        option.textContent = `${capacity} seats`;
+        seating.appendChild(option);
+      });
+    }
+  }
+}
+
+function populateVehicles() {
+  const select = $("vehicle");
+  if (!select) return;
+  const category = state.categories.find((item) => item.name === $("category")?.value);
+  const seats = Number($("seating")?.value) || null;
+  let vehicles = state.vehicles;
+  if (category) vehicles = vehicles.filter((item) => Number(item.category_id) === Number(category.id));
+  if (seats) vehicles = vehicles.filter((item) => item.seating_capacity == null || Number(item.seating_capacity) === seats);
+  setPlaceholder(select, vehicles.length ? "Select a model" : "No matching vehicle");
+  vehicles.forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.seating_capacity != null ? `${item.name} — ${item.seating_capacity} seats` : item.name;
+    select.appendChild(option);
+  });
+}
+
+function showEmptyResult() {
+  show($("resultEmpty"), true);
+  show($("resultSuccess"), false);
+  show($("resultError"), false);
+}
+function showError(message) {
+  setText("errorMessage", message);
+  show($("resultEmpty"), false);
+  show($("resultSuccess"), false);
+  show($("resultError"), true);
+}
+
+function displayCalculation(calculation) {
+  setText("fareAmount", fmt(calculation.fare));
+  setText("resultCategory", calculation.category || "—");
+  setText("resultDistance", fmt(calculation.distance_km));
+  setText("resultSeats", calculation.seating_capacity != null ? `${calculation.seating_capacity} seats` : "—");
+  setText("resultVehicle", calculation.vehicle?.name || calculation.category || "—");
+  setText("calculationMethod", calculation.calculation_method === "database_fare_rule"
+    ? "Government fare rule"
+    : calculation.calculation_method || "Fare estimate");
+  setText("minimumFare", fmt(calculation.minimum_fare));
+  setText("additionalDistance", fmt(calculation.additional_distance_km));
+  setText("additionalFare", fmt(calculation.additional_fare));
+  setText("fareRuleNote", calculation.fare_source === "database"
+    ? `Calculated from the database fare rule. ${calculation.government_reference || ""}`.trim()
+    : "This is a fallback estimate and is not an official fare.");
+
+  const breakdown = $("slabBreakdown");
+  if (breakdown) {
+    breakdown.replaceChildren();
+    (calculation.slab_breakdown || []).forEach((slab) => {
+      const row = document.createElement("div");
+      row.className = "slab-row";
+      row.innerHTML = `<span>${fmt(slab.from_km)}–${fmt(slab.to_km)} km</span><strong>₹${fmt(slab.amount)} <small>(${fmt(slab.rate_per_km)}/km)</small></strong>`;
+      breakdown.appendChild(row);
+    });
+  }
+  show($("slabSection"), Boolean(calculation.slab_breakdown?.length));
+  show($("resultEmpty"), false);
+  show($("resultSuccess"), true);
+  show($("resultError"), false);
+}
+
+async function calculate() {
+  if (state.loading) return;
+  const category = state.categories.find((item) => item.name === $("category")?.value);
+  const distance = Number($("distance")?.value);
+  const seats = Number($("seating")?.value) || null;
+  const vehicleId = Number($("vehicle")?.value) || null;
+  if (!category) return showError("Choose a vehicle classification linked to a fare category.");
+  if (!Number.isFinite(distance) || distance <= 0) return showError("Enter a valid journey distance.");
+  if (bool(category.requires_seating_capacity) && !seats) return showError("Select the seating capacity.");
+
+  const body = { category: category.name, distance_km: distance };
+  if (seats) body.seating_capacity = seats;
+  if (vehicleId) body.vehicle_id = vehicleId;
+  state.loading = true;
+  const button = $("calculateBtn");
+  if (button) button.disabled = true;
+  try {
+    const response = await api(API.calculate, { method: "POST", body: JSON.stringify(body) });
+    if (!response?.success || !response.calculation) throw new Error("Invalid fare calculation response");
+    displayCalculation(response.calculation);
+  } catch (error) {
+    console.error("Fare calculation failed:", error);
+    showError("The fare service is temporarily unavailable. Please try again shortly.");
+  } finally {
+    state.loading = false;
+    if (button) button.disabled = false;
+  }
+}
+
+async function loadClassification(attempt = 1) {
+  const select = $("governmentClass");
+  const status = $("classStatus");
+  try {
+    const response = await api(API.classification);
+    state.classes = response?.classes || [];
+    populateClasses();
+    if (state.classes.length) {
+      show(status, false);
+    } else if (status) {
+      status.textContent = "No vehicle classifications are available yet.";
+    }
+  } catch (error) {
+    console.warn(`Classification request ${attempt} failed:`, error.message);
+    if (attempt < 3) {
+      if (status) status.textContent = "Loading classifications… trying again.";
+      window.setTimeout(() => loadClassification(attempt + 1), 4000);
+    } else {
+      if (select) select.disabled = true;
+      if (status) status.textContent = "Vehicle categories couldn’t be loaded. Refresh to try again.";
+    }
+  }
+}
+
+async function init() {
+  setText("currentYear", new Date().getFullYear());
+  showEmptyResult();
+  const results = await Promise.allSettled([
+    api(API.health),
+    api(`${API_BASE}/categories`),
+    api(API.vehicles)
+  ]);
+  const [healthResult, categoriesResult, vehiclesResult] = results;
+  if (categoriesResult.status === "fulfilled") state.categories = categoriesResult.value?.categories || [];
+  if (vehiclesResult.status === "fulfilled") state.vehicles = vehiclesResult.value?.vehicles || [];
+  setText("categoryCount", categoriesResult.status === "fulfilled" ? state.categories.length : "—");
+  setText("vehicleCount", vehiclesResult.status === "fulfilled" ? state.vehicles.length : "—");
+  setText("vehicleCountStat", vehiclesResult.status === "fulfilled" ? state.vehicles.length : "—");
+
+  const serviceOnline = healthResult.status === "fulfilled"
+    && healthResult.value?.status === "healthy"
+    && categoriesResult.status === "fulfilled"
+    && vehiclesResult.status === "fulfilled";
+  setText("footerStatus", serviceOnline ? "Fare data service online" : "Fare data service unavailable");
+  const badge = $("heroApiStatus");
+  if (badge) {
+    badge.classList.toggle("online", serviceOnline);
+    badge.innerHTML = `<span class="status-dot" aria-hidden="true"></span>${serviceOnline ? "Fare data online" : "Fare data unavailable"}`;
+  }
+  loadClassification();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  $("fareForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    calculate();
+  });
+  $("governmentClass")?.addEventListener("change", populateSubclasses);
+  $("governmentSubclass")?.addEventListener("change", populateConfigurations);
+  $("governmentConfiguration")?.addEventListener("change", updateOperational);
+  $("seating")?.addEventListener("change", populateVehicles);
+  $("resetBtn")?.addEventListener("click", () => {
+    $("fareForm")?.reset();
+    showEmptyResult();
+    populateSubclasses();
+  });
+  $("retryBtn")?.addEventListener("click", calculate);
+  $("mobileMenuBtn")?.addEventListener("click", (event) => {
+    const button = event.currentTarget;
+    const navigation = $("mainNav");
+    if (!navigation) return;
+    const isOpen = navigation.classList.toggle("open");
+    button.setAttribute("aria-expanded", String(isOpen));
+    button.setAttribute("aria-label", isOpen ? "Close navigation" : "Open navigation");
+  });
+  $("mainNav")?.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => {
+    $("mainNav")?.classList.remove("open");
+    $("mobileMenuBtn")?.setAttribute("aria-expanded", "false");
+    $("mobileMenuBtn")?.setAttribute("aria-label", "Open navigation");
+  }));
+  init();
+});
