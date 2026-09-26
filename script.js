@@ -204,7 +204,7 @@ async function calculate() {
   if (!Number.isFinite(distance) || distance <= 0) return showError("Enter a valid journey distance.");
   if (bool(category.requires_seating_capacity) && !seats) return showError("Select the seating capacity.");
 
-  const body = { category: category.name, distance_km: distance };
+  const body = { category: category.name, distance_km: distance, government_subclass: selectedSubclass()?.name || null, government_configuration: selectedConfiguration()?.name || null };
   if (seats) body.seating_capacity = seats;
   if (vehicleId) body.vehicle_id = vehicleId;
   state.loading = true;
@@ -216,7 +216,7 @@ async function calculate() {
     displayCalculation(response.calculation);
   } catch (error) {
     console.error("Fare calculation failed:", error);
-    showError("The fare service is temporarily unavailable. Please try again shortly.");
+    showError(error.message || "Unable to calculate this fare. Check the selected vehicle type and try again.");
   } finally {
     state.loading = false;
     if (button) button.disabled = false;
