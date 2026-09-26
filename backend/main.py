@@ -102,27 +102,27 @@ def normalize_name(value: Optional[str]) -> str:
 CATEGORY_ALIASES = {
     "auto": "Auto Rickshaw",
     "auto rickshaw": "Auto Rickshaw",
-    "taxi": "Taxi / Motor Cab",
-    "motor cab": "Taxi / Motor Cab",
-    "taxi motor cab": "Taxi / Motor Cab",
+    "taxi": "Motor Cab",
+    "motor cab": "Motor Cab",
+    "taxi motor cab": "Motor Cab",
     "maxicab": "Maxicab",
     "maxi cab": "Maxicab",
-    "traveller": "Traveller",
-    "traveler": "Traveller",
-    "contract carriage": "Traveller",
-    "tourist vehicle": "Tourist Bus",
-    "tourist bus": "Tourist Bus",
-    "route bus": "Route Bus",
-    "stage carriage": "Route Bus",
+    "traveller": "Contract Carriage",
+    "traveler": "Contract Carriage",
+    "contract carriage": "Contract Carriage",
+    "tourist vehicle": "Contract Carriage",
+    "tourist bus": "Contract Carriage",
+    "route bus": "Stage Carriage",
+    "stage carriage": "Stage Carriage",
 }
 
 COMMON_FUEL_BY_CATEGORY = {
     "Auto Rickshaw": "Diesel",
-    "Taxi / Motor Cab": "Petrol",
+    "Motor Cab": "Petrol",
     "Maxicab": "Diesel",
-    "Traveller": "Diesel",
-    "Route Bus": "Diesel",
-    "Tourist Bus": "Diesel",
+    "Contract Carriage": "Diesel",
+    "Stage Carriage": "Diesel",
+    "Contract Carriage": "Diesel",
 }
 
 
@@ -410,7 +410,7 @@ class FareCalculationRequest(BaseModel):
     distance_km: float = Field(..., gt=0)
     seating_capacity: Optional[int] = Field(None, gt=0)
     vehicle_id: Optional[int] = Field(None, gt=0)
-    energy_source: Optional[str] = Field(None, min_length=1)
+    energy_source: Optional[str] = Field(None, min_length=1); government_subclass: Optional[str] = Field(None, min_length=1); government_configuration: Optional[str] = Field(None, min_length=1)
 
 
 def validate_distance(distance_km: float):
@@ -420,17 +420,17 @@ def validate_distance(distance_km: float):
         raise HTTPException(status_code=400, detail="Distance is unrealistically large")
 
 
-def find_fare_rule(category_id: int):
+def find_fare_rule(category_id: int, government_subclass: Optional[str] = None, government_configuration: Optional[str] = None):
     return fetch_one("""
         SELECT fr.*
         FROM fare_rules fr
         WHERE fr.category_id = %s
           AND LOWER(TRIM(fr.status)) = 'active'
           AND fr.effective_from <= CURRENT_DATE
-          AND (fr.effective_to IS NULL OR fr.effective_to >= CURRENT_DATE)
+          AND (fr.effective_to IS NULL OR fr.effective_to >= CURRENT_DATE) AND (%s IS NULL OR fr.notes ILIKE %s)
         ORDER BY fr.effective_from DESC, fr.id DESC
         LIMIT 1
-    """, (category_id,))
+    """, (category_id, ("%" + "%".join(normalize_name(government_configuration or government_subclass).split()) + "%") if (government_configuration or government_subclass) else None, ("%" + "%".join(normalize_name(government_configuration or government_subclass).split()) + "%") if (government_configuration or government_subclass) else None))
 
 
 def find_fare_slabs(fare_rule_id: int):
@@ -504,11 +504,11 @@ def calculate_from_slabs(distance_km: float, minimum_fare: float, minimum_distan
 # Emergency estimates only. They are never labelled official.
 FALLBACK_FARES = {
     "Auto Rickshaw": {"minimum_fare": 30.0, "minimum_distance": 1.5, "rate": 15.0},
-    "Taxi / Motor Cab": {"minimum_fare": 200.0, "minimum_distance": 5.0, "rate": 18.0},
+    "Motor Cab": {"minimum_fare": 200.0, "minimum_distance": 5.0, "rate": 18.0},
     "Maxicab": {"minimum_fare": 200.0, "minimum_distance": 5.0, "rate": 20.0},
-    "Traveller": {"minimum_fare": 200.0, "minimum_distance": 5.0, "rate": 20.0},
-    "Route Bus": {"minimum_fare": 20.0, "minimum_distance": 1.0, "rate": 10.0},
-    "Tourist Bus": {"minimum_fare": 200.0, "minimum_distance": 5.0, "rate": 20.0},
+    "Contract Carriage": {"minimum_fare": 200.0, "minimum_distance": 5.0, "rate": 20.0},
+
+    "Contract Carriage": {"minimum_fare": 200.0, "minimum_distance": 5.0, "rate": 20.0},
 }
 
 
@@ -516,7 +516,7 @@ def fallback_fare(category: str, distance_km: float):
     validate_distance(distance_km)
     config = FALLBACK_FARES.get(category)
     if not config:
-        raise HTTPException(status_code=500, detail="No fallback fare configuration exists for this category")
+        raise HTTPException(status_code=422, detail="No verified fare rule is available for the selected vehicle type.")
     extra = max(0.0, distance_km - config["minimum_distance"])
     fare = config["minimum_fare"] + extra * config["rate"]
     return {
@@ -566,14 +566,14 @@ def calculate_fare(request: FareCalculationRequest):
     validate_category_requirements(category, request.seating_capacity)
 
     vehicle = find_vehicle(category_id, request.seating_capacity, request.vehicle_id)
-    fare_rule = find_fare_rule(category_id)
+    fare_rule = find_fare_rule(category_id, request.government_subclass, request.government_configuration)
 
     if fare_rule:
         try:
             minimum_fare = float(fare_rule["minimum_fare"])
             minimum_distance = float(fare_rule["minimum_distance_km"])
             slabs = find_fare_slabs(fare_rule["id"])
-            result = calculate_from_slabs(request.distance_km, minimum_fare, minimum_distance, slabs)
+            result = calculate_from_slabs(request.distance_km, minimum_fare, minimum_distance, slabs); result["fare"] = float(Decimal(str(result["fare"])).quantize(Decimal("1"), rounding=ROUND_HALF_UP)) if "ordinary mofussil" in normalize_name(fare_rule.get("notes") or "") else result["fare"]; result["additional_fare"] = result["fare"] - minimum_fare if "ordinary mofussil" in normalize_name(fare_rule.get("notes") or "") else result["additional_fare"]
         except (ValueError, TypeError) as exc:
             print("Fare rule calculation error:", exc)
             raise HTTPException(status_code=500, detail="Invalid fare rule configuration")
