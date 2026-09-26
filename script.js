@@ -11,6 +11,7 @@ const state = { classes: [], categories: [], vehicles: [], loading: false };
 const bool = (value) => value === true || value === 1 || value === "1" || value === "true" || value === "TRUE";
 const show = (element, visible) => { if (element) element.style.display = visible ? "" : "none"; };
 const setText = (id, value) => { const element = $(id); if (element) element.textContent = value; };
+const setValue = (id, value) => { const element = $(id); if (element) element.value = value; };
 const fmt = (value) => {
   const number = Number(value);
   return Number.isFinite(number) ? number.toFixed(2) : "0.00";
@@ -83,7 +84,7 @@ function populateSubclasses() {
   });
   show($("governmentSubclassGroup"), Boolean(classification));
   show($("governmentConfigurationGroup"), false);
-  setText("category", "");
+  setValue("category", "");
   updateOperational();
 }
 
@@ -103,7 +104,7 @@ function populateConfigurations() {
 
 function updateOperational() {
   const category = mappedCategory();
-  setText("category", category?.name || "");
+  setValue("category", category?.name || "");
   updateRequirements();
   populateVehicles();
 }
