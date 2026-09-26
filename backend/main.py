@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, ConfigDict
 
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = FastAPI(
