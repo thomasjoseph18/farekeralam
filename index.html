@@ -1,79 +1,16 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Check a Kerala passenger fare estimate using vehicle details, journey distance and available fare rules.">
-  <meta name="theme-color" content="#f6f5ef">
-  <title>Fare Keralam — Passenger fare calculator</title>
-  <link rel="stylesheet" href="style.css?v=20260926-1">
-</head>
-<body>
-  <header class="site-header">
-    <div class="container nav-container">
-      <a class="brand" href="#top" aria-label="Fare Keralam home"><span class="brand-mark" aria-hidden="true">FK</span><span class="brand-name">Fare Keralam<small>Passenger fare calculator</small></span></a>
-      <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mainNav">Menu</button>
-      <nav class="main-nav" id="mainNav" aria-label="Main navigation"><a class="nav-link" href="#calculator">Calculator</a><a class="nav-link" href="#how-it-works">How it works</a></nav>
-      <span class="service-badge" id="heroApiStatus"><span class="status-dot" aria-hidden="true"></span>Checking fare data</span>
-    </div>
-  </header>
-  <main id="top">
-    <section class="hero">
-      <div class="container hero-grid">
-        <div class="hero-copy">
-          <p class="eyebrow">Built for Kerala</p>
-          <h1>Know your fare before you travel.</h1>
-          <p class="hero-description">Get a clear estimate using the available fare rules, vehicle details and journey distance.</p>
-          <div class="hero-actions"><a class="button button-primary" href="#calculator">Calculate a fare <span aria-hidden="true">→</span></a><a class="button button-quiet" href="#how-it-works">How it works</a></div>
-        </div>
-        <aside class="hero-note" aria-labelledby="estimate-title">
-          <p class="note-kicker">A fare estimate uses</p><h2 id="estimate-title">Three parts of your journey</h2>
-          <ol class="input-list">
-            <li><span>01</span><div><strong>Vehicle category</strong><small>Choose the classification that applies.</small></div></li>
-            <li><span>02</span><div><strong>Vehicle details</strong><small>Seats and model, when the category requires them.</small></div></li>
-            <li><span>03</span><div><strong>Distance travelled</strong><small>Enter the journey distance in kilometres.</small></div></li>
-          </ol>
-          <p class="note-foot">The result shows the fare rule used when one is available.</p>
-        </aside>
-      </div>
-    </section>
-    <section class="catalog" aria-label="Available fare data"><div class="container catalog-inner"><p>Current catalogue</p><div class="catalog-count"><strong id="categoryCount">—</strong><span>vehicle categories</span></div><div class="catalog-count"><strong id="vehicleCount">—</strong><span>vehicle records</span></div><span id="vehicleCountStat" hidden>—</span></div></section>
-    <section class="calculator-section" id="calculator"><div class="container">
-      <div class="section-heading"><p class="eyebrow">Fare calculator</p><h2>Plan your journey</h2><p>Enter the details below to see an estimate and how it was calculated.</p></div>
-      <div class="calculator-layout">
-        <section class="calculator-card" aria-labelledby="journey-title"><div class="card-heading"><div><p class="step-label">JOURNEY DETAILS</p><h3 id="journey-title">Tell us about your trip</h3></div></div>
-          <form id="fareForm">
-            <div class="form-group"><label for="governmentClass">Vehicle category</label><select id="governmentClass" name="governmentClass" required><option value="" selected disabled>Loading fare classifications…</option></select><p class="field-help">Choose the category that best matches your vehicle.</p></div>
-            <p id="classStatus" class="inline-status" role="status">Loading fare classifications…</p>
-            <div class="form-group" id="governmentSubclassGroup" style="display:none"><label for="governmentSubclass">Vehicle type</label><select id="governmentSubclass" name="governmentSubclass"><option value="" selected disabled>Select a vehicle type</option></select></div>
-            <div class="form-group" id="governmentConfigurationGroup" style="display:none"><label for="governmentConfiguration">Configuration</label><select id="governmentConfiguration" name="governmentConfiguration"><option value="" selected disabled>Select a configuration</option></select></div>
-            <input id="category" name="category" type="hidden" value="">
-            <div class="form-row">
-              <div class="form-group" id="seatingGroup" style="display:none"><label for="seating">Seating capacity</label><select id="seating" name="seating"><option value="" selected disabled>Select seats</option></select></div>
-              <div class="form-group" id="vehicleGroup" style="display:none"><label for="vehicle">Vehicle model <span class="optional">Optional</span></label><select id="vehicle" name="vehicle"><option value="" selected disabled>Select a model</option></select></div>
-            </div>
-            <div class="form-group"><label for="distance">Journey distance</label><div class="distance-input"><input id="distance" name="distance" type="number" min="0.1" step="0.1" inputmode="decimal" placeholder="e.g. 5" required><span>km</span></div><p class="field-help">Use the total distance for this journey.</p></div>
-            <button class="button button-primary calculate-btn" id="calculateBtn" type="submit">Calculate estimate <span aria-hidden="true">→</span></button>
-            <p class="form-note">Fare data may change. Confirm the current fare with the operator before travelling.</p>
-          </form>
-        </section>
-        <section class="result-card" aria-labelledby="result-title" aria-live="polite">
-          <div class="result-empty" id="resultEmpty"><p class="result-overline">YOUR ESTIMATE</p><h3 id="result-title">Your fare will appear here</h3><p>Complete the journey details to see the estimated fare and calculation notes.</p></div>
-          <div class="result-success" id="resultSuccess" style="display:none">
-            <p class="result-overline">FARE ESTIMATE</p><h3 id="result-title-success">Estimated fare</h3><p class="fare-amount"><span>₹</span><strong id="fareAmount">0.00</strong></p>
-            <p class="result-status"><span class="status-dot" aria-hidden="true"></span><span id="calculationMethod">Fare rule</span></p>
-            <dl class="result-details"><div><dt>Vehicle category</dt><dd id="resultCategory">—</dd></div><div><dt>Vehicle</dt><dd id="resultVehicle">—</dd></div><div><dt>Distance</dt><dd><span id="resultDistance">—</span> km</dd></div><div><dt>Seating</dt><dd id="resultSeats">—</dd></div></dl>
-            <div class="fare-breakdown"><p class="breakdown-title">Calculation details</p><div class="breakdown-row"><span>Minimum fare</span><strong>₹<span id="minimumFare">0.00</span></strong></div><div class="breakdown-row"><span>Additional distance</span><strong><span id="additionalDistance">0.00</span> km</strong></div><div class="breakdown-row"><span>Additional fare</span><strong>₹<span id="additionalFare">0.00</span></strong></div><div class="slab-section" id="slabSection" style="display:none"><p class="breakdown-title">Distance slabs</p><div id="slabBreakdown"></div></div></div>
-            <p class="fare-rule-note" id="fareRuleNote"></p><button class="reset-btn" id="resetBtn" type="button">Clear and start again</button>
-          </div>
-          <div class="result-error" id="resultError" style="display:none" role="alert"><p class="result-overline">ESTIMATE UNAVAILABLE</p><h3>We couldn’t calculate this fare</h3><p id="errorMessage">Please check the journey details and try again.</p><button class="button button-quiet retry-btn" id="retryBtn" type="button">Try again</button></div>
-        </section>
-      </div>
-    </div></section>
-    <section class="how-section" id="how-it-works"><div class="container how-grid"><div class="section-heading"><p class="eyebrow">How it works</p><h2>A clear estimate, step by step.</h2><p>Fare Keralam uses your selected vehicle details and distance to request a calculation from its fare service.</p></div><ol class="steps-list"><li><span>01</span><div><h3>Select the vehicle details</h3><p>Choose a category and provide seating or model details when asked.</p></div></li><li><span>02</span><div><h3>Enter the distance</h3><p>Use the total journey distance in kilometres.</p></div></li><li><span>03</span><div><h3>Review the estimate</h3><p>See the fare, applicable rule details and any distance-slab breakdown returned by the service.</p></div></li></ol></div><div class="container fare-disclaimer"><strong>Please note</strong><p>The amount is an estimate based on fare data currently available to the service. It does not replace a current government order or the operator’s fare information.</p></div></section>
-  </main>
-  <footer class="site-footer"><div class="container footer-inner"><a class="brand footer-brand" href="#top"><span class="brand-mark" aria-hidden="true">FK</span><span class="brand-name">Fare Keralam<small>Passenger fare calculator</small></span></a><p class="footer-copy">A practical way to review passenger fare estimates in Kerala.</p><p class="footer-service"><span class="status-dot" aria-hidden="true"></span><span id="footerStatus">Connecting to fare service…</span></p><p class="copyright">© <span id="currentYear"></span> Fare Keralam</p></div></footer>
-  <span id="heroVehicle" hidden></span><span id="heroDistance" hidden></span><span id="heroFare" hidden></span><span id="heroEnergy" hidden></span>
-  <script src="script.js?v=20260926-1" defer></script>
-</body>
+<html lang="<!-- figma:lang -->">
+  <head>
+    <!-- figma:head-start -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><!-- figma:title --></title>
+    <!-- figma:head-end -->
+  </head>
+  <body>
+    <!-- figma:body-start -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- figma:body-end -->
+  </body>
 </html>

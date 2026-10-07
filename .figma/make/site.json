@@ -1,0 +1,10 @@
+{
+  "description": "Provides accurate fare estimates for various vehicle categories by integrating fuel costs and government rates to help passengers and drivers plan trips.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
